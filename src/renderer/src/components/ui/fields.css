@@ -1,0 +1,174 @@
+.f-section {
+  border-bottom: 1px solid var(--line);
+}
+.f-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 4px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.f-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 12px 12px;
+}
+.f-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+.f-label {
+  width: 78px;
+  flex: none;
+  color: var(--text-2);
+  font-size: 12px;
+}
+.f-control {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.f-number {
+  position: relative;
+  display: inline-flex;
+  flex: 1;
+  min-width: 56px;
+}
+.f-number .input {
+  padding-right: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.f-suffix {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  font-size: 11px;
+  pointer-events: none;
+}
+.f-slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.f-slider input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.f-slider-value {
+  width: 40px;
+  text-align: right;
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.f-color {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.f-color input[type='color'] {
+  width: 28px;
+  height: 26px;
+  padding: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-s);
+  background: var(--bg-1);
+  cursor: pointer;
+  flex: none;
+}
+.f-hex {
+  width: 78px;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.f-alpha {
+  flex: 1;
+  min-width: 40px;
+  accent-color: var(--accent);
+}
+.f-select {
+  flex: 1;
+  padding-right: 4px;
+}
+.f-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.f-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.f-switch {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background 0.15s;
+  flex: none;
+}
+.f-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s;
+}
+.f-toggle input:checked + .f-switch {
+  background: var(--accent);
+}
+.f-toggle input:checked + .f-switch::after {
+  transform: translateX(13px);
+}
+.f-toggle input:focus-visible + .f-switch {
+  box-shadow: var(--focus-ring);
+}
+.f-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--bg-3);
+}
+.f-seg button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 11.5px;
+}
+.f-seg button.active {
+  background: var(--bg-1);
+  color: var(--accent-strong);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+}

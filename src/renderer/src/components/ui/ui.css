@@ -1,0 +1,277 @@
+/* ------------------------------ Splitters ------------------------------ */
+.splitter {
+  position: relative;
+  flex: none;
+  background: var(--bg-0);
+  z-index: 5;
+}
+.splitter-vertical {
+  width: 4px;
+  cursor: col-resize;
+}
+.splitter-horizontal {
+  height: 4px;
+  cursor: row-resize;
+}
+.splitter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transition: background 0.12s;
+}
+.splitter:hover::after,
+.splitter:active::after {
+  background: var(--accent);
+  opacity: 0.6;
+}
+body.resizing-col,
+body.resizing-col * {
+  cursor: col-resize !important;
+}
+body.resizing-row,
+body.resizing-row * {
+  cursor: row-resize !important;
+}
+
+/* ------------------------------ Panels ------------------------------ */
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 6px 0 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+.panel-header.toggleable {
+  cursor: default;
+}
+.panel-header-icon {
+  display: flex;
+  color: var(--text-3);
+}
+.panel-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ------------------------------ Context menu ------------------------------ */
+.ctx-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 340px;
+  padding: 4px;
+  background: #ffffff;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(20, 50, 30, 0.18);
+  outline: none;
+}
+.ctx-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 8px 0 4px;
+  border-radius: var(--radius-s);
+  color: var(--text-1);
+  cursor: default;
+  white-space: nowrap;
+}
+.ctx-item.active:not(.disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+.ctx-item.disabled {
+  color: var(--text-3);
+}
+.ctx-item.danger:not(.active) {
+  color: var(--danger);
+}
+.ctx-icon {
+  display: flex;
+  justify-content: center;
+  width: 18px;
+  flex: none;
+  opacity: 0.85;
+}
+.ctx-label {
+  flex: 1;
+}
+.ctx-shortcut {
+  margin-left: 24px;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+.ctx-item.active .ctx-shortcut {
+  color: rgba(255, 255, 255, 0.8);
+}
+.ctx-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--line-strong);
+}
+
+/* ------------------------------ Dialogs ------------------------------ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 35, 22, 0.35);
+  animation: fade-in 0.12s ease-out;
+}
+.modal {
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-l);
+  box-shadow: 0 24px 64px rgba(20, 50, 30, 0.25);
+  animation: pop-in 0.14s ease-out;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px 10px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  overflow: auto;
+}
+.modal-message {
+  color: var(--text-2);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+.modal-hint {
+  margin-right: auto;
+  font-size: 11.5px;
+}
+.field-label {
+  color: var(--text-2);
+}
+.field-error {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+/* ------------------------------ Toasts ------------------------------ */
+.toast-stack {
+  position: fixed;
+  right: 14px;
+  bottom: calc(var(--statusbar-h) + 12px);
+  z-index: 950;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 360px;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px 10px 12px;
+  background: #ffffff;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 28px rgba(20, 50, 30, 0.18);
+  pointer-events: auto;
+  animation: slide-in 0.18s ease-out;
+}
+.toast-success {
+  border-left-color: var(--ok);
+}
+.toast-warning {
+  border-left-color: var(--warn);
+}
+.toast-error {
+  border-left-color: var(--danger);
+}
+.toast-icon {
+  display: flex;
+  margin-top: 1px;
+}
+.toast-success .toast-icon {
+  color: var(--ok);
+}
+.toast-warning .toast-icon {
+  color: var(--warn);
+}
+.toast-error .toast-icon {
+  color: var(--danger);
+}
+.toast-info .toast-icon {
+  color: var(--accent);
+}
+.toast-text {
+  flex: 1;
+  min-width: 0;
+}
+.toast-title {
+  font-weight: 600;
+}
+.toast-detail {
+  margin-top: 2px;
+  color: var(--text-2);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.toast-close {
+  width: 22px;
+  height: 22px;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}

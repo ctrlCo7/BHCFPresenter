@@ -1,0 +1,124 @@
+.overlays-panel,
+.timers-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-1);
+}
+.overlay-list,
+.timer-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.overlays-panel:not(.compact) .overlay-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  align-content: start;
+}
+.overlay-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+}
+.overlay-item.on {
+  border-color: var(--live);
+  box-shadow: inset 3px 0 0 var(--live);
+}
+.overlay-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.overlay-toggle:hover {
+  background: var(--bg-3);
+}
+.overlay-thumb {
+  width: 112px;
+  flex: none;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.overlay-thumb .sr-viewport {
+  background: repeating-conic-gradient(#c9d1cc 0 25%, #eef2ef 0 50%) 0 0 / 10px 10px;
+}
+.overlay-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.overlay-state {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--bg-4);
+  color: var(--text-2);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.overlay-item.on .overlay-state {
+  background: var(--live);
+  color: #fff;
+}
+
+.timer-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 6px 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.timer-row.running {
+  border-color: var(--accent);
+}
+.timer-row.expired .timer-value {
+  color: var(--live);
+}
+.timer-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.timer-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.timer-kind {
+  color: var(--text-3);
+  font-size: 11px;
+}
+.timer-value {
+  min-width: 70px;
+  margin-right: 4px;
+  text-align: right;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.timers-panel.compact .timer-value {
+  font-size: 15px;
+}

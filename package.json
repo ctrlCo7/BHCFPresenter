@@ -1,0 +1,36 @@
+{
+  "name": "bhcf-presenter",
+  "productName": "BHCF Presenter",
+  "version": "0.1.0",
+  "description": "Live presentation and media software for churches, conferences and events.",
+  "author": "John Carl Sarbida",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "node scripts/electron-vite.mjs dev",
+    "build": "npm run typecheck && node scripts/electron-vite.mjs build",
+    "preview": "node scripts/electron-vite.mjs preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "immer": "^11.1.21",
+    "lucide-react": "^1.52.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.5.1",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.11"
+  }
+}

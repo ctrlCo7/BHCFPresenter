@@ -1,0 +1,129 @@
+.bible-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-1);
+}
+.bible-bar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.bible-ref {
+  width: 210px;
+  flex: none;
+}
+.bible-search {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.bible-search svg {
+  position: absolute;
+  left: 8px;
+  color: var(--text-3);
+}
+.bible-search .input {
+  padding-left: 26px;
+}
+.bible-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.bible-verses {
+  padding: 6px 10px 10px;
+  columns: 2 420px;
+  column-gap: 18px;
+}
+.verse {
+  display: flex;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: var(--radius-s);
+  line-height: 1.45;
+  cursor: pointer;
+  break-inside: avoid;
+}
+.verse:hover {
+  background: var(--bg-3);
+}
+.verse.selected {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.verse-num {
+  min-width: 22px;
+  color: var(--accent-strong);
+  font-weight: 700;
+  font-size: 11px;
+  padding-top: 2px;
+  text-align: right;
+}
+.bible-results {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+}
+.bible-results-head {
+  padding: 4px 6px 8px;
+}
+.bible-result {
+  padding: 6px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  text-align: left;
+  line-height: 1.45;
+  cursor: pointer;
+}
+.bible-result:hover {
+  background: var(--bg-3);
+}
+.bible-result b {
+  color: var(--accent-strong);
+}
+.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent-strong);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.bible-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.bible-selection {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+.bible-opt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.bible-copy {
+  padding: 0 10px 6px;
+  background: var(--bg-2);
+  font-size: 10.5px;
+  text-align: right;
+}
+.bible-bar .f-select {
+  flex: none;
+}

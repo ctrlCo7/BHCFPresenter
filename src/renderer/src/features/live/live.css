@@ -1,0 +1,62 @@
+.live-right {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  background: var(--bg-1);
+}
+.live-preview-strip {
+  height: 260px;
+  flex: none;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.live-preview-strip .preview {
+  height: 100%;
+  min-height: 0;
+  border-top: none;
+}
+.live-preview-strip .monitor-body {
+  flex-direction: row;
+}
+.live-preview-strip .monitor-frame {
+  width: 340px;
+}
+.live-preview-strip .monitor-next,
+.live-preview-strip .monitor-notes {
+  flex: 1;
+  min-width: 0;
+}
+.live-controls {
+  border-top: 1px solid var(--line);
+}
+.live-controls .overlays-panel,
+.live-controls .timers-panel {
+  height: auto;
+}
+.live-controls .overlay-list,
+.live-controls .timer-list {
+  padding: 0;
+  overflow: visible;
+}
+.live-controls .empty-state {
+  padding: 8px;
+  height: auto;
+}
+.stage-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+}
+.stage-msg-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  background: #fef9c3;
+  color: #713f12;
+  font-weight: 600;
+}

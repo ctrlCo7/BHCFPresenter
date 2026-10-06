@@ -1,0 +1,463 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.app-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* ------------------------------ Title bar ------------------------------ */
+.titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--titlebar-h);
+  /* Leave room for the native window controls drawn by titleBarOverlay. */
+  padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+  background: var(--brand);
+  color: #fff;
+  -webkit-app-region: drag;
+  flex: none;
+}
+.titlebar.platform-darwin {
+  padding-left: 78px;
+}
+.titlebar button,
+.titlebar input {
+  -webkit-app-region: no-drag;
+}
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-left: 10px;
+  z-index: 1;
+}
+.titlebar-logo {
+  display: flex;
+  margin-right: 4px;
+}
+.titlebar-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 30vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.menubar {
+  display: flex;
+}
+.menubar-btn {
+  height: 26px;
+  padding: 0 9px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  cursor: default;
+}
+.menubar-btn:hover,
+.menubar-btn.open {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 2px;
+  margin-left: 14px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.18);
+  z-index: 1;
+}
+.mode-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  cursor: pointer;
+}
+.mode-tab:hover:not(:disabled) {
+  color: #fff;
+}
+.mode-tab.active {
+  background: #ffffff;
+  color: var(--brand);
+}
+.mode-tab.live.active {
+  background: var(--live);
+  color: #fff;
+}
+.mode-tab:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ------------------------------ Workspace ------------------------------ */
+.workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.ws-left,
+.ws-right {
+  flex: none;
+  min-height: 0;
+}
+.ws-center {
+  flex: 1;
+  min-width: 320px;
+  display: flex;
+  flex-direction: column;
+}
+.ws-center-main {
+  flex: 1;
+  min-height: 0;
+}
+.ws-bottom {
+  flex: none;
+  min-height: 0;
+}
+
+/* ------------------------------ Status bar ------------------------------ */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: var(--statusbar-h);
+  padding: 0 10px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: 11.5px;
+  flex: none;
+}
+.status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  white-space: nowrap;
+}
+button.status-item {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.status-ok svg {
+  color: var(--ok);
+}
+.status-error {
+  color: var(--danger) !important;
+}
+.status-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40vw;
+}
+.status-spacer {
+  flex: 1;
+}
+.status-clock {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------ Welcome ------------------------------ */
+.welcome {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: radial-gradient(1200px 600px at 50% -10%, rgba(22, 163, 74, 0.18), transparent 60%), var(--bg-0);
+}
+.welcome-card {
+  width: 640px;
+  max-width: 100%;
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-1);
+  box-shadow: 0 30px 80px rgba(20, 83, 45, 0.15);
+}
+.welcome-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.welcome-hero h1 {
+  margin: 0 0 2px;
+  font-size: 22px;
+  font-weight: 650;
+}
+.welcome-hero p {
+  margin: 0;
+}
+.welcome-actions {
+  display: flex;
+  gap: 10px;
+  margin: 26px 0;
+}
+.welcome-kbd {
+  margin-left: 8px;
+  opacity: 0.6;
+  font-size: 11px;
+}
+.welcome-recent h2 {
+  margin: 0 0 8px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.welcome-recent ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 300px;
+  overflow: auto;
+}
+.welcome-recent li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--radius);
+}
+.welcome-recent li:hover {
+  background: var(--bg-3);
+}
+.welcome-recent-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.welcome-recent-open:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.welcome-recent-name {
+  font-weight: 600;
+}
+.welcome-recent-path {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+.welcome-recent-date {
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+
+/* ------------------------------ Dialog content ------------------------------ */
+.backup-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 340px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.backup-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.backup-row:hover {
+  background: var(--bg-3);
+}
+.backup-row.selected {
+  background: var(--accent-soft);
+}
+.backup-date {
+  min-width: 170px;
+}
+.backup-size {
+  margin-left: auto;
+}
+
+.shortcut-list {
+  max-height: 70vh;
+}
+.shortcut-list h4 {
+  margin: 8px 0 4px;
+  color: var(--text-3);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shortcut-keys {
+  display: flex;
+  gap: 4px;
+}
+
+.about {
+  align-items: center;
+  text-align: center;
+}
+.about h2 {
+  margin: 4px 0 0;
+}
+.about p {
+  margin: 0;
+}
+
+.crash {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 40px;
+}
+.crash pre {
+  max-width: 100%;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  color: #ff9b94;
+  white-space: pre-wrap;
+}
+
+/* ------------------------------ Title bar (right) ------------------------------ */
+.titlebar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-right: 10px;
+  z-index: 1;
+}
+.outputs-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.outputs-pill.on {
+  border-color: #fff;
+  background: #fff;
+  color: var(--live);
+}
+.titlebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+.titlebar-icon:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ------------------------------ Bottom panel ------------------------------ */
+.bottom-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-1);
+}
+.bottom-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 8px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+  flex: none;
+}
+.bottom-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: transparent;
+  color: var(--text-2);
+  font-weight: 600;
+  cursor: pointer;
+}
+.bottom-tabs button:hover {
+  color: var(--text-1);
+}
+.bottom-tabs button.active {
+  margin-bottom: -1px;
+  border-color: var(--line);
+  background: var(--bg-1);
+  color: var(--accent-strong);
+}
+.bottom-content {
+  flex: 1;
+  min-height: 0;
+}
+.bottom-content > * {
+  height: 100%;
+}
+
+.crash.compact {
+  padding: 16px;
+  gap: 6px;
+}

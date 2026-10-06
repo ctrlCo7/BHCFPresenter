@@ -1,0 +1,236 @@
+.monitor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  overflow: auto;
+  background: var(--bg-1);
+}
+.program-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+.program-frame {
+  box-shadow: 0 0 0 2px var(--live), 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+.program-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  min-width: 0;
+}
+.program-status > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.onair {
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--bg-4);
+  color: var(--text-2);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.onair.on {
+  background: var(--live);
+  color: #fff;
+}
+.onair.black {
+  background: #111;
+  color: #fff;
+}
+.live-btns {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.live-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 52px;
+  padding: 4px 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--bg-1);
+  color: var(--text-1);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.live-btn:hover {
+  background: var(--bg-3);
+}
+.live-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+.live-btn.danger.active {
+  border-color: #111;
+  background: #111;
+}
+.live-btn kbd {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  color: inherit;
+  opacity: 0.55;
+  font: 9px var(--font-mono);
+}
+.live-btns.compact .live-btn {
+  height: 40px;
+}
+
+.transport {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+}
+.transport-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.transport-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.transport-time {
+  color: var(--text-2);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.transport-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-4);
+  cursor: pointer;
+  overflow: hidden;
+}
+.transport-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+}
+.transport-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.transport-volume {
+  flex: 1;
+  margin-left: 6px;
+  accent-color: var(--accent);
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 260px;
+  border-top: 1px solid var(--line);
+}
+.monitor-pos {
+  margin-right: 6px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.monitor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  padding: 10px 12px 12px;
+}
+.monitor-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  flex: none;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #000;
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+.monitor-blank {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-3);
+  background: repeating-linear-gradient(135deg, #eef2ef 0 12px, #e6ece8 12px 24px);
+}
+.monitor-blank.small {
+  font-size: 11px;
+}
+.monitor-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.monitor-next-row {
+  display: flex;
+  gap: 10px;
+}
+.monitor-next-frame {
+  position: relative;
+  width: 120px;
+  height: 68px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+.monitor-next-text {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text-2);
+  white-space: pre-line;
+}
+.monitor-notes {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100px;
+}
+.notes-input {
+  flex: 1;
+  min-height: 70px;
+  resize: none;
+}
+.transport-bg {
+  padding: 4px 6px 4px 10px;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
