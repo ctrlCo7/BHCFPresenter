@@ -22,6 +22,7 @@ import {
   toggleLogo
 } from './liveActions'
 import { live, useLiveStore } from './liveStore'
+import { rootList } from '../engine/tree'
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.length < 100 ? v : null)
 
@@ -80,7 +81,7 @@ function snapshot(p: Project): RemoteSnapshot {
       slides: x.slides.map((sl) => ({ id: sl.id, label: sl.label, text: slidePlainText(sl).slice(0, 160), enabled: sl.enabled }))
     }
   }
-  const playlists = p.trees.playlists
+  const playlists = rootList(p, 'playlists')
     .flatMap(function walk(id): string[] {
       const f = p.folders[id]
       return f ? f.childIds.flatMap(walk) : [id]
@@ -97,7 +98,7 @@ function snapshot(p: Project): RemoteSnapshot {
             return {
               id: e.id,
               kind: e.kind,
-              label: e.kind === 'header' ? e.title : e.kind === 'presentation' ? (p.presentations[e.presentationId]?.name ?? '?') : (p.media[e.mediaId]?.name ?? '?'),
+              label: e.kind === 'header' ? e.title : (p.presentations[e.presentationId]?.name ?? '?'),
               presentationId: e.kind === 'presentation' ? e.presentationId : null
             }
           })

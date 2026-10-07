@@ -83,7 +83,7 @@
 }
 .transparent .sr-viewport,
 .strip-thumb.transparent .sr-viewport {
-  background: repeating-conic-gradient(#c9d1cc 0 25%, #eef2ef 0 50%) 0 0 / 16px 16px;
+  background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 16px 16px;
 }
 
 /* Toolbar + canvas */
@@ -135,7 +135,7 @@
   justify-content: center;
   outline: none;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 40%, #e9efeb, #dfe7e2);
+  background: radial-gradient(circle at 50% 40%, var(--stage-a), var(--stage-b));
 }
 .editor-stage {
   position: relative;
@@ -148,7 +148,7 @@
   overflow: hidden;
 }
 .editor-stage.transparent {
-  background: repeating-conic-gradient(#c9d1cc 0 25%, #eef2ef 0 50%) 0 0 / 20px 20px;
+  background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 20px 20px;
 }
 .editor-overlay {
   position: absolute;

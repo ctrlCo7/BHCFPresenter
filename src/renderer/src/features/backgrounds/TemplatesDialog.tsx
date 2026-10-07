@@ -106,11 +106,11 @@ function BackgroundsTab(): ReactElement {
 
 const SAMPLE_BG: Background = { type: 'gradient', gradient: { kind: 'linear', angle: 135, stops: [{ color: '#0f3d22', position: 0 }, { color: '#1e3a8a', position: 1 }] } }
 
-function ThemePreview({ slide, canvas }: { slide: Slide; canvas: { width: number; height: number } }): ReactElement {
+function ThemePreview({ slide, canvas, background }: { slide: Slide; canvas: { width: number; height: number }; background?: Background | null }): ReactElement {
   const [ref, width] = useElementWidth<HTMLDivElement>()
   return (
     <div ref={ref} className="tpl-preview">
-      {width > 0 && <SlideRenderer slide={slide} inheritedBackground={SAMPLE_BG} canvas={canvas} media={{}} width={width} mode="thumbnail" />}
+      {width > 0 && <SlideRenderer slide={slide} inheritedBackground={background && background.type !== 'none' ? background : SAMPLE_BG} canvas={canvas} media={{}} width={width} mode="thumbnail" />}
     </div>
   )
 }
@@ -144,7 +144,7 @@ function ThemesTab(): ReactElement {
       <p className="muted tpl-hint">
         {pres ? (
           <>
-            Click a theme to restyle <b>{pres.name}</b> ({pres.slides.length} slides). Themes make the background transparent so your live background video shows through. Undo with Ctrl+Z.
+            Click a theme to restyle <b>{pres.name}</b> ({pres.slides.length} slides). Most themes make the background transparent so your live background video shows through; Midnight, Forest Dawn and Paper & Ink bring their own background. Undo with Ctrl+Z.
           </>
         ) : (
           'Open a song or presentation first, then pick a theme here. New songs can choose a theme in the song editor.'
@@ -153,7 +153,7 @@ function ThemesTab(): ReactElement {
       <div className="tpl-grid">
         {samples.map(({ theme, slide }) => (
           <button key={theme.id} className={`tpl-card tpl-theme${current === theme.id ? ' current' : ''}`} disabled={!pres} onClick={() => apply(theme)}>
-            <ThemePreview slide={slide} canvas={canvas} />
+            <ThemePreview slide={slide} canvas={canvas} background={theme.background} />
             <div className="tpl-name">
               {theme.name} {current === theme.id && <Check size={13} />}
             </div>

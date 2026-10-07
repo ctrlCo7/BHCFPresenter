@@ -32,7 +32,7 @@ export interface LiveOpState {
   media: MediaPlayback | null
   /** Live background behind every slide: keeps playing while slides change */
   bgMedia: MediaPlayback | null
-  /** Playlist position of the current media cue, so Next continues the playlist */
+  /** Media-tab playlist position of the current media cue (entryId = media id), so Next continues it */
   mediaContext: PlaylistContext | null
   overlays: Id[]
   timers: Record<Id, TimerRuntime>

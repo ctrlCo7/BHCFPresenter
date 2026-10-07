@@ -3,13 +3,16 @@ import { ErrorBoundary } from '../../app/ErrorBoundary'
 import { Splitter } from '../../components/ui/Splitter'
 import { ui, useUiStore } from '../../store/uiStore'
 import { LibrarySidebar } from '../library/LibrarySidebar'
-import { PreviewMonitor } from '../monitor/PreviewMonitor'
 import { PresentationPanel } from '../presentation/PresentationPanel'
 import { BottomPanel } from './BottomPanel'
+import { RightPanel } from './RightPanel'
 
 const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v))
 
-/** Show-mode layout: library | slides + tabbed bottom panel | program & preview, with resizable splitters. */
+/**
+ * Show-mode layout: library | slides on top, the media / Bible panel spanning underneath both,
+ * and the Program monitor with its tabs down the right — all with resizable splitters.
+ */
 export function Workspace(): ReactElement {
   const layout = useUiStore((s) => s.layout)
   const start = useRef(layout)
@@ -19,17 +22,21 @@ export function Workspace(): ReactElement {
 
   return (
     <div className="workspace">
-      <div className="ws-left" style={{ width: layout.leftWidth }}>
-        <ErrorBoundary compact>
-          <LibrarySidebar />
-        </ErrorBoundary>
-      </div>
-      <Splitter orientation="vertical" onDragStart={remember} onDrag={(dx) => ui.setLayout({ leftWidth: clamp(start.current.leftWidth + dx, 200, 520) })} />
-      <div className="ws-center">
-        <div className="ws-center-main">
-          <ErrorBoundary compact>
-            <PresentationPanel />
-          </ErrorBoundary>
+      <div className="ws-main">
+        <div className="ws-top">
+          <div className="ws-left" style={{ width: layout.leftWidth }}>
+            <ErrorBoundary compact>
+              <LibrarySidebar />
+            </ErrorBoundary>
+          </div>
+          <Splitter orientation="vertical" onDragStart={remember} onDrag={(dx) => ui.setLayout({ leftWidth: clamp(start.current.leftWidth + dx, 200, 520) })} />
+          <div className="ws-center">
+            <div className="ws-center-main">
+              <ErrorBoundary compact>
+                <PresentationPanel />
+              </ErrorBoundary>
+            </div>
+          </div>
         </div>
         {layout.bottomOpen && (
           <>
@@ -47,7 +54,7 @@ export function Workspace(): ReactElement {
       <Splitter orientation="vertical" onDragStart={remember} onDrag={(dx) => ui.setLayout({ rightWidth: clamp(start.current.rightWidth - dx, 300, 760) })} />
       <div className="ws-right" style={{ width: layout.rightWidth }}>
         <ErrorBoundary compact>
-          <PreviewMonitor />
+          <RightPanel />
         </ErrorBoundary>
       </div>
     </div>

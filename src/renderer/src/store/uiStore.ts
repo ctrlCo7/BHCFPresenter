@@ -11,7 +11,10 @@ export type AppMode = 'show' | 'edit' | 'live'
 /** What the slide editor is editing: a presentation slide or an overlay. */
 export type EditTarget = { kind: 'slide'; presentationId: Id; slideId: Id } | { kind: 'overlay'; overlayId: Id }
 
-export type BottomTab = 'media' | 'bible' | 'overlays' | 'timers'
+export type BottomTab = 'media' | 'bible'
+
+/** Tab under the Program monitor in Show mode. */
+export type RightTab = 'preview' | 'overlays' | 'timers'
 
 export interface TreeSelection {
   scope: TreeScope
@@ -28,7 +31,7 @@ export interface Layout {
   rightWidth: number
   bottomHeight: number
   bottomOpen: boolean
-  /** Fraction of the sidebar height used by the playlists section */
+  /** Fraction of the sidebar height used by the top (library) section */
   playlistsFraction: number
 }
 
@@ -45,11 +48,14 @@ export interface UiState {
   search: string
   thumbWidth: number
   mediaFilter: 'all' | MediaKind
+  /** Media-tab playlist shown in the grid (null = all media) */
+  mediaPlaylistId: Id | null
   selectedMediaIds: Id[]
   layout: Layout
   editTarget: EditTarget | null
   selectedElementIds: Id[]
   bottomTab: BottomTab
+  rightTab: RightTab
   /** Bible panel: chosen translation */
   bibleId: string | null
 }
@@ -76,23 +82,27 @@ export const useUiStore = create<UiState>()(
       search: '',
       thumbWidth: 220,
       mediaFilter: 'all',
+      mediaPlaylistId: null,
       selectedMediaIds: [],
       layout: defaultLayout,
       editTarget: null,
       selectedElementIds: [],
       bottomTab: 'media',
+      rightTab: 'preview',
       bibleId: null
     }),
     {
       name: 'bhcf-ui',
       version: 1,
-      partialize: (s) => ({ layout: s.layout, thumbWidth: s.thumbWidth, bottomTab: s.bottomTab, bibleId: s.bibleId }),
+      partialize: (s) => ({ layout: s.layout, thumbWidth: s.thumbWidth, bottomTab: s.bottomTab, rightTab: s.rightTab, bibleId: s.bibleId }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<UiState>
         return {
           ...current,
           thumbWidth: typeof p.thumbWidth === 'number' ? p.thumbWidth : current.thumbWidth,
-          bottomTab: p.bottomTab === 'bible' || p.bottomTab === 'overlays' || p.bottomTab === 'timers' ? p.bottomTab : 'media',
+          bottomTab: p.bottomTab === 'bible' ? 'bible' : 'media',
+          // Overlays and timers used to be bottom tabs; they now sit under the Program monitor.
+          rightTab: p.rightTab === 'overlays' || p.rightTab === 'timers' ? p.rightTab : (p.bottomTab as string) === 'overlays' || (p.bottomTab as string) === 'timers' ? (p.bottomTab as RightTab) : 'preview',
           bibleId: typeof p.bibleId === 'string' ? p.bibleId : null,
           layout: { ...defaultLayout, ...(p.layout ?? {}) }
         }
@@ -136,6 +146,7 @@ export const ui = {
       renamingId: null,
       search: '',
       selectedMediaIds: [],
+      mediaPlaylistId: null,
       editTarget: null,
       selectedElementIds: [],
       mode: 'show'

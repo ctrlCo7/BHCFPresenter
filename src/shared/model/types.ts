@@ -253,6 +253,25 @@ export interface MediaAsset {
   importedAt: IsoDate
 }
 
+/** What a media playlist holds: one kind of media, or backgrounds (images and videos). */
+export type MediaPlaylistKind = MediaKind | 'background'
+
+export const MEDIA_PLAYLIST_KINDS: readonly MediaPlaylistKind[] = ['image', 'background', 'video', 'audio']
+
+export function mediaPlaylistAccepts(kind: MediaPlaylistKind, media: MediaKind | undefined): boolean {
+  return kind === 'background' ? media === 'image' || media === 'video' : media === kind
+}
+
+/** A named collection in the Media tab, in display order. */
+export interface MediaPlaylist {
+  id: Id
+  name: string
+  kind: MediaPlaylistKind
+  mediaIds: Id[]
+  createdAt: IsoDate
+  updatedAt: IsoDate
+}
+
 /* ------------------------------------------------------------------ */
 /* Library organisation                                                */
 /* ------------------------------------------------------------------ */
@@ -269,7 +288,6 @@ export interface Folder {
 
 export type PlaylistEntry =
   | { id: Id; kind: 'presentation'; presentationId: Id }
-  | { id: Id; kind: 'media'; mediaId: Id }
   | { id: Id; kind: 'header'; title: string; color: string }
 
 export interface Playlist {
@@ -300,8 +318,26 @@ export interface ProjectSettings {
   linesPerSlide: number
 }
 
+/**
+ * A workspace for one church event (Sunday Celebration, Lifeclass…). Each profile has its own
+ * library pages, service-order playlists and media; the items themselves live in the project's
+ * records and a profile lists which ones it shows.
+ */
+export interface Profile {
+  id: Id
+  name: string
+  /** Root-level ordered ids of this profile's Library and Playlists trees */
+  trees: Record<TreeScope, Id[]>
+  /** Media assets shown in this profile (an asset may be shared by several profiles) */
+  mediaIds: Id[]
+  /** This profile's Media-tab playlists, in order */
+  mediaPlaylistOrder: Id[]
+  createdAt: IsoDate
+  updatedAt: IsoDate
+}
+
 export const PROJECT_FORMAT = 'bhcf-project'
-export const PROJECT_SCHEMA_VERSION = 2
+export const PROJECT_SCHEMA_VERSION = 4
 
 export interface Project {
   format: typeof PROJECT_FORMAT
@@ -311,12 +347,15 @@ export interface Project {
   createdAt: IsoDate
   updatedAt: IsoDate
   settings: ProjectSettings
-  /** Root-level ordered ids for each tree */
-  trees: Record<TreeScope, Id[]>
+  profiles: Record<Id, Profile>
+  profileOrder: Id[]
+  /** The profile the workspace shows (always one of profileOrder) */
+  activeProfileId: Id
   folders: Record<Id, Folder>
   presentations: Record<Id, Presentation>
   playlists: Record<Id, Playlist>
   media: Record<Id, MediaAsset>
+  mediaPlaylists: Record<Id, MediaPlaylist>
   overlays: Record<Id, Overlay>
   overlayOrder: Id[]
   timers: Record<Id, TimerDef>

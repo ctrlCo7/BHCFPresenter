@@ -66,6 +66,8 @@ function slideText(slide: Slide): string {
 interface ThumbProps {
   slide: Slide
   index: number
+  /** Caption colour: the slide's own, else its group's */
+  color: string | null
   width: number
   selected: boolean
   drop: 'before' | 'after' | null
@@ -82,12 +84,12 @@ interface ThumbProps {
   onDrop: (e: React.DragEvent, index: number) => void
 }
 
-const SlideThumb = memo(function SlideThumb({ slide, index, width, selected, drop, mediaDrop, live, canvas, media, bg, onPointer, onTake, onContext, onDragStart, onDragOver, onDrop }: ThumbProps): ReactElement {
+const SlideThumb = memo(function SlideThumb({ slide, index, color, width, selected, drop, mediaDrop, live, canvas, media, bg, onPointer, onTake, onContext, onDragStart, onDragOver, onDrop }: ThumbProps): ReactElement {
   const text = slideText(slide)
   return (
     <div
       className={`thumb${selected ? ' selected' : ''}${live ? ' live' : ''}${slide.enabled ? '' : ' disabled'}${drop ? ` drop-${drop}` : ''}${mediaDrop ? ' media-drop' : ''}`}
-      style={{ width, ['--slide-color' as string]: slide.color ?? 'transparent' }}
+      style={{ width, ['--slide-color' as string]: color ?? 'transparent' }}
       data-slide-id={slide.id}
       draggable
       onMouseDown={(e) => onPointer(e, slide)}
@@ -110,7 +112,7 @@ const SlideThumb = memo(function SlideThumb({ slide, index, width, selected, dro
           </div>
         )}
       </div>
-      <div className="thumb-footer">
+      <div className={`thumb-footer${color ? " colored" : ""}`}>
         <span className="thumb-index">{index + 1}</span>
         <span className="thumb-label">{slide.label || (text ? '' : 'Empty')}</span>
       </div>
@@ -158,6 +160,7 @@ function SlideGrid({ project, pres }: { project: Project; pres: Presentation }):
   const [mediaDropId, setMediaDropId] = useState<Id | null>(null)
   const bg = inheritedBackground(project, pres)
   const slides = pres.slides
+  const groupColors = useMemo(() => new Map(pres.groups.map((g) => [g.id, g.color])), [pres.groups])
 
   useZoneHandlers('slides', {
     delete: deleteSelectedSlides,
@@ -389,6 +392,7 @@ function SlideGrid({ project, pres }: { project: Project; pres: Presentation }):
             key={slide.id}
             slide={slide}
             index={i}
+            color={slide.color ?? (slide.groupId ? (groupColors.get(slide.groupId) ?? null) : null)}
             width={thumbWidth}
             selected={selected.has(slide.id)}
             drop={drop?.index === i ? drop.side : null}

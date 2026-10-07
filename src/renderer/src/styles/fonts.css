@@ -1,0 +1,35 @@
+/*
+ * Fonts bundled with the app for slide text, so slides look the same on any computer.
+ * Loaded by both the main window and the output window. Keep in sync with BUNDLED_FONTS
+ * in render/fonts.ts.
+ */
+@import '@fontsource-variable/montserrat/wght.css';
+@import '@fontsource-variable/open-sans/wght.css';
+@import '@fontsource-variable/roboto/wght.css';
+@import '@fontsource-variable/nunito/wght.css';
+@import '@fontsource-variable/raleway/wght.css';
+@import '@fontsource-variable/oswald/wght.css';
+@import '@fontsource-variable/playfair-display/wght.css';
+@import '@fontsource-variable/playfair-display/wght-italic.css';
+@import '@fontsource-variable/lora/wght.css';
+@import '@fontsource-variable/lora/wght-italic.css';
+@import '@fontsource-variable/dancing-script/wght.css';
+@import '@fontsource/poppins/latin-300.css';
+@import '@fontsource/poppins/latin-400.css';
+@import '@fontsource/poppins/latin-500.css';
+@import '@fontsource/poppins/latin-600.css';
+@import '@fontsource/poppins/latin-700.css';
+@import '@fontsource/poppins/latin-800.css';
+@import '@fontsource/poppins/latin-900.css';
+@import '@fontsource/lato/latin-300.css';
+@import '@fontsource/lato/latin-400.css';
+@import '@fontsource/lato/latin-700.css';
+@import '@fontsource/lato/latin-900.css';
+@import '@fontsource/merriweather/latin-300.css';
+@import '@fontsource/merriweather/latin-400.css';
+@import '@fontsource/merriweather/latin-700.css';
+@import '@fontsource/merriweather/latin-900.css';
+@import '@fontsource/bebas-neue/latin-400.css';
+@import '@fontsource/anton/latin-400.css';
+@import '@fontsource/great-vibes/latin-400.css';
+@import '@fontsource/pacifico/latin-400.css';

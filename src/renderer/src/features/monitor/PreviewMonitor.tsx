@@ -166,12 +166,3 @@ export function SlidePreview(): ReactElement {
     </div>
   )
 }
-
-export function PreviewMonitor(): ReactElement {
-  return (
-    <aside className="monitor">
-      <ProgramMonitor />
-      <SlidePreview />
-    </aside>
-  )
-}

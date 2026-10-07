@@ -8,6 +8,9 @@ import { LiveWorkspace } from '../features/live/LiveWorkspace'
 import { ensureVideoThumbnails, importMedia } from '../features/media/mediaActions'
 import { StatusBar } from '../features/shell/StatusBar'
 import { TitleBar } from '../features/shell/TitleBar'
+import { Toolbar } from '../features/shell/Toolbar'
+import { ProfileTabs } from '../features/profiles/ProfileTabs'
+import { loadTheme } from '../services/theme'
 import { WelcomeScreen } from '../features/shell/WelcomeScreen'
 import { Workspace } from '../features/shell/Workspace'
 import { live } from '../live/liveStore'
@@ -43,6 +46,7 @@ export function App(): ReactElement {
       // Development-only inspection hook for debugging and automated smoke tests.
       if (i.isDev) Object.assign(window, { __bhcfDebug: { project: useProjectStore, ui: useUiStore, live, runCommand, importMedia } })
     })
+    void loadTheme()
     void openLastProject().finally(() => setBooted(true))
     const onError = (e: ErrorEvent): void => window.bhcf.app.log('error', `${e.message} @ ${e.filename}:${e.lineno}`)
     const onRejection = (e: PromiseRejectionEvent): void => window.bhcf.app.log('error', `Unhandled rejection: ${String(e.reason)}`)
@@ -75,6 +79,8 @@ export function App(): ReactElement {
   return (
     <div className="app">
       <TitleBar platform={info?.platform ?? 'win32'} isDev={info?.isDev ?? false} />
+      {booted && hasProject && <Toolbar />}
+      {booted && hasProject && <ProfileTabs />}
       <main className="app-main">
         {!booted ? null : !hasProject ? (
           <WelcomeScreen />

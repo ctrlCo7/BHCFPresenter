@@ -116,7 +116,8 @@ export type MenuItem =
       onSelect: () => void
     }
   | { type: 'separator' }
-  | { type: 'submenu'; label: string; icon?: ReactNode; items: MenuItem[] }
+  /** `onSelect`, when given, runs on click; hovering still opens the submenu. */
+  | { type: 'submenu'; label: string; icon?: ReactNode; items: MenuItem[]; onSelect?: () => void }
 
 export interface MenuRequest {
   x: number

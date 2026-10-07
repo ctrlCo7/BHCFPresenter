@@ -57,25 +57,6 @@ export function LibrarySidebar(): ReactElement {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-search">
-        <Search size={14} className="sidebar-search-icon" />
-        <input
-          ref={inputRef}
-          id="library-search"
-          className="input"
-          placeholder="Search library and lyrics…"
-          value={search}
-          onChange={(e) => ui.set({ search: e.target.value })}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              ui.set({ search: '' })
-              inputRef.current?.blur()
-            }
-          }}
-        />
-        {search && <IconButton icon={<X size={13} />} title="Clear search" className="sidebar-search-clear" onClick={() => ui.set({ search: '' })} />}
-      </div>
-
       {deferredSearch.trim() ? (
         <div className="sidebar-section" style={{ flex: 1 }}>
           <PanelHeader title="Search Results" icon={<Search size={13} />} />
@@ -84,11 +65,12 @@ export function LibrarySidebar(): ReactElement {
       ) : (
         <div className="sidebar-sections" ref={containerRef}>
           <div className="sidebar-section" style={{ flex: `0 0 ${(fraction * 100).toFixed(2)}%` }}>
-            <PanelHeader title="Playlists" icon={<ListMusic size={13} />}>
-              <IconButton icon={<FolderPlus size={14} />} title="New playlist folder" onClick={() => newFolder('playlists')} />
-              <IconButton icon={<ListPlus size={14} />} title="New playlist" onClick={newPlaylist} />
+            <PanelHeader title="Library" icon={<Library size={13} />}>
+              <IconButton icon={<FolderPlus size={14} />} title="New library folder" onClick={() => newFolder('library')} />
+              <IconButton icon={<Music size={14} />} title="New song" onClick={() => void newSong()} />
+              <IconButton icon={<Plus size={14} />} title="New presentation" onClick={newPresentation} />
             </PanelHeader>
-            <TreeSection scope="playlists" />
+            <TreeSection scope="library" />
           </div>
           <Splitter
             orientation="horizontal"
@@ -101,15 +83,32 @@ export function LibrarySidebar(): ReactElement {
             }}
           />
           <div className="sidebar-section" style={{ flex: 1 }}>
-            <PanelHeader title="Library" icon={<Library size={13} />}>
-              <IconButton icon={<FolderPlus size={14} />} title="New library folder" onClick={() => newFolder('library')} />
-              <IconButton icon={<Music size={14} />} title="New song" onClick={() => void newSong()} />
-              <IconButton icon={<Plus size={14} />} title="New presentation" onClick={newPresentation} />
+            <PanelHeader title="Playlists" icon={<ListMusic size={13} />}>
+              <IconButton icon={<FolderPlus size={14} />} title="New playlist folder" onClick={() => newFolder('playlists')} />
+              <IconButton icon={<ListPlus size={14} />} title="New playlist" onClick={newPlaylist} />
             </PanelHeader>
-            <TreeSection scope="library" />
+            <TreeSection scope="playlists" />
           </div>
         </div>
       )}
+      <div className="sidebar-search sidebar-filter">
+        <Search size={14} className="sidebar-search-icon" />
+        <input
+          ref={inputRef}
+          id="library-search"
+          className="input"
+          placeholder="Filter library and lyrics…"
+          value={search}
+          onChange={(e) => ui.set({ search: e.target.value })}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              ui.set({ search: '' })
+              inputRef.current?.blur()
+            }
+          }}
+        />
+        {search && <IconButton icon={<X size={13} />} title="Clear search" className="sidebar-search-clear" onClick={() => ui.set({ search: '' })} />}
+      </div>
     </aside>
   )
 }

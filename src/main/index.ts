@@ -9,7 +9,7 @@ import { OutputManager } from './output/OutputManager'
 import { ProjectStore } from './project/ProjectStore'
 import { RemoteServer } from './remote/RemoteServer'
 import { installCrashLogging, log } from './util/log'
-import { createMainWindow, focusWindow, loadRendererPage } from './windows/mainWindow'
+import { createMainWindow, focusWindow, loadRendererPage, titleBarColors, windowBackground } from './windows/mainWindow'
 
 app.setName('BHCF Presenter')
 registerMediaScheme()
@@ -33,11 +33,19 @@ if (!app.requestSingleInstanceLock()) {
   app.on('second-instance', () => focusWindow(mainWindow))
 
   void app.whenReady().then(async () => {
-    nativeTheme.themeSource = 'light'
     // The renderer draws its own menu bar; on macOS keep the standard app menu for Quit/Copy/Paste.
     Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]) : null)
 
     await config.load()
+    // Before the window exists, so it opens in the right colours.
+    nativeTheme.themeSource = config.get().theme
+    // Windows draws the title-bar buttons; recolour them when the theme (or the OS setting) changes.
+    nativeTheme.on('updated', () => {
+      const win = getMainWindow()
+      if (!win) return
+      win.setBackgroundColor(windowBackground())
+      if (process.platform !== 'darwin') win.setTitleBarOverlay(titleBarColors())
+    })
     handleMediaProtocol(() => store.current?.media ?? null)
     registerIpc({ store, config, outputs, bibles, remote, getMainWindow, projectsRoot })
 

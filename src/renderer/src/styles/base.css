@@ -1,4 +1,7 @@
-/* Design tokens — white surfaces with green accents. */
+/*
+ * Design tokens — white surfaces with green accents, and a dark set below. The theme follows
+ * prefers-color-scheme, which the main process sets from the Light / Dark / System preference.
+ */
 :root {
   --bg-0: #eef3ef; /* app gutters / canvas around panels */
   --bg-1: #ffffff; /* panels */
@@ -15,12 +18,32 @@
   --accent-soft: rgba(22, 163, 74, 0.12);
   --brand: #166534; /* title bar */
   --brand-2: #14532d;
+  --brand-text: #166534; /* brand green used as text on panels */
   --live: #dc2626;
   --live-soft: rgba(220, 38, 38, 0.12);
   --ok: #16a34a;
   --warn: #d97706;
   --danger: #dc2626;
   --focus-ring: 0 0 0 2px rgba(22, 163, 74, 0.45);
+
+  /* Surfaces and effects that differ per theme */
+  --surface: #ffffff; /* buttons, inputs, menus, toasts */
+  --shadow: rgba(20, 50, 30, 0.18);
+  --backdrop: rgba(15, 35, 22, 0.35);
+  --scroll-thumb: #c5d3c9;
+  --scroll-thumb-hover: #a9bcae;
+  --checker-a: #c9d1cc; /* transparency checkerboard */
+  --checker-b: #eef2ef;
+  --stage-a: #e9efeb; /* around the editor canvas */
+  --stage-b: #dfe7e2;
+  --stripe-a: #eef2ef; /* empty monitor */
+  --stripe-b: #e6ece8;
+  --note-bg: #fef9c3;
+  --note-text: #713f12;
+  --pill-bg: rgba(255, 255, 255, 0.92); /* buttons over thumbnails */
+  --pill-bg-hover: #ffffff;
+  --pill-text: #15231a;
+  --mode-active-bg: #ffffff;
 
   --radius-s: 4px;
   --radius: 6px;
@@ -33,6 +56,53 @@
   --font-mono: 'Cascadia Mono', 'SF Mono', Consolas, monospace;
 
   color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-0: #0d1410;
+    --bg-1: #141d17;
+    --bg-2: #18231c;
+    --bg-3: #1f2c24;
+    --bg-4: #29392f;
+    --line: #243128;
+    --line-strong: #344739;
+    --text-1: #e3ece6;
+    --text-2: #a7b9ad;
+    --text-3: #74877a;
+    --accent: #22c55e;
+    --accent-strong: #16a34a;
+    --accent-soft: rgba(34, 197, 94, 0.16);
+    --brand: #0f2a1a;
+    --brand-2: #0a1f13;
+    --brand-text: #4ade80;
+    --live: #ef4444;
+    --live-soft: rgba(239, 68, 68, 0.2);
+    --ok: #22c55e;
+    --warn: #f59e0b;
+    --danger: #f05252;
+    --focus-ring: 0 0 0 2px rgba(34, 197, 94, 0.5);
+
+    --surface: #1a251e;
+    --shadow: rgba(0, 0, 0, 0.5);
+    --backdrop: rgba(0, 0, 0, 0.55);
+    --scroll-thumb: #2f4136;
+    --scroll-thumb-hover: #40574a;
+    --checker-a: #26302a;
+    --checker-b: #1a221d;
+    --stage-a: #121a15;
+    --stage-b: #0b110d;
+    --stripe-a: #141d17;
+    --stripe-b: #18231c;
+    --note-bg: #3a3212;
+    --note-text: #fde68a;
+    --pill-bg: rgba(20, 29, 23, 0.9);
+    --pill-bg-hover: #1f2c24;
+    --pill-text: #e3ece6;
+    --mode-active-bg: #1f3a28;
+
+    color-scheme: dark;
+  }
 }
 
 *,
@@ -88,13 +158,13 @@ textarea {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #c5d3c9;
+  background: var(--scroll-thumb);
   border: 2px solid transparent;
   background-clip: padding-box;
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a9bcae;
+  background: var(--scroll-thumb-hover);
   background-clip: padding-box;
 }
 ::-webkit-scrollbar-corner {
@@ -112,7 +182,7 @@ textarea {
   padding: 0 10px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: var(--surface);
   color: var(--text-1);
   white-space: nowrap;
   cursor: pointer;
@@ -184,7 +254,7 @@ textarea {
   padding: 0 8px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  background: #ffffff;
+  background: var(--surface);
   outline: none;
 }
 .input:focus {

@@ -71,48 +71,111 @@
   color: #fff;
 }
 
-.mode-tabs {
-  display: flex;
-  gap: 2px;
-  margin-left: 14px;
-  padding: 2px;
-  border-radius: var(--radius);
-  background: rgba(0, 0, 0, 0.18);
-  z-index: 1;
-}
-.mode-tab {
+/* ------------------------------ Toolbar ------------------------------ */
+/* Icon-over-label buttons under the title bar, as in ProPresenter. */
+.toolbar {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 24px;
-  padding: 0 12px;
+  gap: 2px;
+  height: 58px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.tool-btn {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 54px;
+  height: 52px;
+  padding: 0 6px;
   border: none;
-  border-radius: var(--radius-s);
+  border-radius: var(--radius);
   background: transparent;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 600;
+  color: var(--text-2);
   cursor: pointer;
 }
-.mode-tab:hover:not(:disabled) {
+.tool-btn:hover {
+  background: var(--bg-3);
+  color: var(--text-1);
+}
+.tool-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 26px;
+  border-radius: var(--radius);
+}
+.tool-label {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tool-btn.active {
+  color: var(--brand-text);
+}
+.tool-btn.active .tool-icon {
+  background: var(--accent);
   color: #fff;
 }
-.mode-tab.active {
-  background: #ffffff;
-  color: var(--brand);
+.tool-btn.mode-live.active {
+  color: var(--live);
 }
-.mode-tab.live.active {
+.tool-btn.mode-live.active .tool-icon {
   background: var(--live);
-  color: #fff;
 }
-.mode-tab:disabled {
-  opacity: 0.4;
-  cursor: default;
+.tool-sep {
+  flex: none;
+  width: 1px;
+  height: 34px;
+  margin: 0 6px;
+  background: var(--line-strong);
+}
+.tool-spacer {
+  flex: 1;
+  min-width: 12px;
+}
+/* Outputs on/off, like ProPresenter's Audience light. */
+.output-dot {
+  width: 17px;
+  height: 17px;
+  border: 2.5px solid var(--live);
+  border-radius: 50%;
+}
+.output-dot.on {
+  border-color: var(--ok);
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
 }
 
 /* ------------------------------ Workspace ------------------------------ */
 .workspace {
   flex: 1;
   min-width: 0;
+  display: flex;
+}
+/* Main column: library | slides on top, the bottom panel spanning both. */
+.ws-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ws-top {
+  flex: 1;
+  min-height: 0;
   display: flex;
 }
 .ws-left,
@@ -204,7 +267,7 @@ button.status-item {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--bg-1);
-  box-shadow: 0 30px 80px rgba(20, 83, 45, 0.15);
+  box-shadow: 0 30px 80px var(--shadow);
 }
 .welcome-hero {
   display: flex;
@@ -366,50 +429,6 @@ button.status-item {
   white-space: pre-wrap;
 }
 
-/* ------------------------------ Title bar (right) ------------------------------ */
-.titlebar-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  padding-right: 10px;
-  z-index: 1;
-}
-.outputs-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 24px;
-  padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
-  background: transparent;
-  color: #fff;
-  font-weight: 600;
-  font-size: 11.5px;
-  cursor: pointer;
-}
-.outputs-pill.on {
-  border-color: #fff;
-  background: #fff;
-  color: var(--live);
-}
-.titlebar-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 26px;
-  border: none;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: #fff;
-  cursor: pointer;
-}
-.titlebar-icon:hover {
-  background: rgba(255, 255, 255, 0.16);
-}
-
 /* ------------------------------ Bottom panel ------------------------------ */
 .bottom-panel {
   display: flex;
@@ -460,4 +479,50 @@ button.status-item {
 .crash.compact {
   padding: 16px;
   gap: 6px;
+}
+
+/* ------------------------------ Right panel ------------------------------ */
+.right-panel {
+  overflow: hidden;
+}
+.right-panel > .program {
+  flex: none;
+  border-bottom: 1px solid var(--line-strong);
+}
+.right-tabs {
+  flex: none;
+  display: flex;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.right-tabs button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border: none;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.right-tabs button:last-child {
+  border-right: none;
+}
+.right-tabs button:hover {
+  background: var(--bg-3);
+  color: var(--text-1);
+}
+.right-tabs button.active {
+  background: var(--accent);
+  color: #fff;
+}
+.right-content {
+  flex: 1;
+  min-height: 140px;
+  overflow: auto;
+}
+.right-content > * {
+  min-height: 100%;
 }

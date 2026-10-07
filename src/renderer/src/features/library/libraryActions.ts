@@ -110,6 +110,7 @@ export async function deleteItem(scope: TreeScope, id: Id): Promise<void> {
   const item = getTreeItem(p, id)
   if (!item) return
   const name = itemName(p, id)
+  const kind = item.kind
   let detail = ''
   if (item.kind === 'folder') {
     const count = leafIdsUnder(p, id).length
@@ -118,13 +119,13 @@ export async function deleteItem(scope: TreeScope, id: Id): Promise<void> {
   const refs = playlistReferencesTo(p, id)
   if (refs > 0) detail += ` It will be removed from ${refs} playlist item(s).`
   const ok = await dialogs.confirm({
-    title: `Delete ${item.kind}`,
+    title: `Delete ${kind}`,
     message: `Delete "${name}"?${detail} You can undo this with ${navigator.userAgent.includes('Mac') ? '⌘Z' : 'Ctrl+Z'}.`,
     confirmLabel: 'Delete',
     danger: true
   })
   if (!ok) return
-  applyChange(`Delete ${item.kind}`, (d) => deleteNode(d, scope, id))
+  applyChange(`Delete ${kind}`, (d) => deleteNode(d, scope, id))
   const s = ui.get()
   const after = useProjectStore.getState().project
   ui.set({
@@ -137,7 +138,15 @@ export async function deleteItem(scope: TreeScope, id: Id): Promise<void> {
 export function addToPlaylist(playlistId: Id, entries: NewPlaylistEntry[], index?: number): void {
   if (entries.length === 0) return
   applyChange('Add to playlist', (d) => addPlaylistEntries(d, playlistId, entries, index))
-  ui.toggleExpanded(playlistId, true)
+  // Expand the playlist and any folders above it so the new entries are visible.
+  const p = requireProject()
+  const expanded = { ...ui.get().expanded, [playlistId]: true }
+  let parent = findParentId(p, 'playlists', playlistId)
+  while (parent) {
+    expanded[parent] = true
+    parent = findParentId(p, 'playlists', parent)
+  }
+  ui.set({ expanded })
 }
 
 export async function addHeader(playlistId: Id, index?: number): Promise<void> {

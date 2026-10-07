@@ -5,7 +5,7 @@
  * remote-control API is a named command. Menus, the shortcut dispatcher and the shortcuts
  * settings page all read from here, so an action is defined exactly once.
  */
-export type CommandCategory = 'File' | 'Edit' | 'View' | 'Library' | 'Slides' | 'Media' | 'Live' | 'Help'
+export type CommandCategory = 'File' | 'Edit' | 'View' | 'Library' | 'Slides' | 'Media' | 'Live' | 'Song' | 'Help'
 
 export interface Command {
   id: string

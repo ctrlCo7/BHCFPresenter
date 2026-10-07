@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { app } from 'electron'
 import { defaultOutputs, defaultStageLayout, type OutputConfig } from '../../shared/live'
-import type { RemoteConfig } from '../../shared/ipc'
+import type { RemoteConfig, ThemePreference } from '../../shared/ipc'
 import { readJson, writeFileAtomic } from '../util/fsx'
 
 /** Machine-level settings (not part of any project): they describe this computer's screens. */
@@ -11,6 +11,8 @@ export interface AppConfigData {
   window: { x?: number; y?: number; width: number; height: number; maximized: boolean }
   outputs: OutputConfig[]
   remote: RemoteConfig
+  /** App colour theme */
+  theme: ThemePreference
 }
 
 const MAX_RECENT = 12
@@ -25,7 +27,8 @@ function defaults(): AppConfigData {
     lastProjectPath: null,
     window: { width: 1600, height: 960, maximized: true },
     outputs: defaultOutputs(),
-    remote: { enabled: false, port: 5719, pin: randomPin() }
+    remote: { enabled: false, port: 5719, pin: randomPin() },
+    theme: 'system'
   }
 }
 
@@ -85,7 +88,8 @@ export class AppConfig {
         lastProjectPath: typeof raw.lastProjectPath === 'string' ? raw.lastProjectPath : null,
         window: raw.window && typeof raw.window.width === 'number' ? { ...d.window, ...raw.window } : d.window,
         outputs: raw.outputs ? sanitizeOutputs(raw.outputs) : d.outputs,
-        remote: sanitizeRemote(raw.remote, d.remote)
+        remote: sanitizeRemote(raw.remote, d.remote),
+        theme: raw.theme === 'light' || raw.theme === 'dark' || raw.theme === 'system' ? raw.theme : d.theme
       }
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') console.warn('[config] unreadable, using defaults:', err)

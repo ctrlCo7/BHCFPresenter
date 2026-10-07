@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { app, BrowserWindow, screen, shell } from 'electron'
+import { app, BrowserWindow, nativeTheme, screen, shell } from 'electron'
 import { IPC } from '../../shared/ipc'
 import type { AppConfig } from '../config/AppConfig'
 
@@ -19,8 +19,15 @@ export function appIconPath(): string {
   return app.isPackaged ? path.join(process.resourcesPath, 'icon.png') : path.join(app.getAppPath(), 'resources', 'icon.png')
 }
 
-/** Title bar colours, matched by the renderer's .titlebar style. */
-export const TITLEBAR = { color: '#166534', symbolColor: '#ffffff', height: 38 }
+/** Title bar colours, matched by the renderer's .titlebar style (--brand) in each theme. */
+export function titleBarColors(): { color: string; symbolColor: string; height: number } {
+  return { color: nativeTheme.shouldUseDarkColors ? '#0f2a1a' : '#166534', symbolColor: '#ffffff', height: 38 }
+}
+
+/** Window background shown before the page paints, matched by --bg-0. */
+export function windowBackground(): string {
+  return nativeTheme.shouldUseDarkColors ? '#0d1410' : '#f3f6f4'
+}
 
 function isTrustedUrl(url: string): boolean {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
@@ -47,11 +54,11 @@ export function createMainWindow(config: AppConfig): BrowserWindow {
     minWidth: 1100,
     minHeight: 680,
     show: false,
-    backgroundColor: '#f3f6f4',
+    backgroundColor: windowBackground(),
     title: 'BHCF Presenter',
     icon: appIconPath(),
     titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
-    ...(isMac ? {} : { titleBarOverlay: TITLEBAR }),
+    ...(isMac ? {} : { titleBarOverlay: titleBarColors() }),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       sandbox: true,

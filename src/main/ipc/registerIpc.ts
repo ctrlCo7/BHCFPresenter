@@ -1,6 +1,6 @@
 import path from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, screen, shell, type IpcMainInvokeEvent } from 'electron'
-import { IPC, type AppInfo, type DisplayInfo, type IpcResult, type RecentProject, type RemoteSnapshot } from '../../shared/ipc'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, shell, type IpcMainInvokeEvent } from 'electron'
+import { IPC, type AppInfo, type DisplayInfo, type IpcResult, type RecentProject, type RemoteSnapshot, type ThemePreference } from '../../shared/ipc'
 import type { LiveState } from '../../shared/live'
 import { MEDIA_EXTENSIONS } from '../../shared/media'
 import type { MediaAsset, Presentation } from '../../shared/model/types'
@@ -84,6 +84,12 @@ export function registerIpc({ store, config, outputs, bibles, remote, getMainWin
   }))
   h(IPC.windowToggleDevtools, () => {
     if (isDev) getMainWindow()?.webContents.toggleDevTools()
+  })
+  h(IPC.appGetTheme, (): ThemePreference => config.get().theme)
+  h(IPC.appSetTheme, async (_e, theme: unknown) => {
+    if (theme !== 'system' && theme !== 'light' && theme !== 'dark') throw new Error('Unknown theme.')
+    nativeTheme.themeSource = theme
+    await config.update({ theme })
   })
   h(IPC.appOpenLogs, async () => {
     await shell.openPath(logsDir())

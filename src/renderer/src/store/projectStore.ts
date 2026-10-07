@@ -84,7 +84,10 @@ let lastCoalesce: { key: string; at: number } | null = null
 export function applyChange(label: string, recipe: (draft: Project) => void, options: ApplyOptions = {}): boolean {
   const state = useProjectStore.getState()
   if (!state.project) return false
-  const next = produce(state.project, recipe)
+  // Discard the recipe's return value: many ops return ids, which Immer would treat as a replacement.
+  const next = produce(state.project, (d) => {
+    recipe(d)
+  })
   if (next === state.project) return false
   const record = options.history !== false
   const now = Date.now()
@@ -100,13 +103,24 @@ export function applyChange(label: string, recipe: (draft: Project) => void, opt
   return true
 }
 
+/**
+ * Undo / redo restore content, not navigation: stay on the profile tab being viewed when it
+ * still exists in the restored version.
+ */
+function keepProfile(restored: Project, current: Project): Project {
+  if (restored.activeProfileId === current.activeProfileId || !restored.profiles[current.activeProfileId]) return restored
+  return produce(restored, (d) => {
+    d.activeProfileId = current.activeProfileId
+  })
+}
+
 export function undo(): string | null {
   lastCoalesce = null
   const s = useProjectStore.getState()
   const prev = s.past[s.past.length - 1]
   if (!prev || !s.project) return null
   useProjectStore.setState({
-    project: prev.project,
+    project: keepProfile(prev.project, s.project),
     revision: s.revision + 1,
     past: s.past.slice(0, -1),
     future: [{ project: s.project, label: prev.label }, ...s.future]
@@ -119,7 +133,7 @@ export function redo(): string | null {
   const next = s.future[0]
   if (!next || !s.project) return null
   useProjectStore.setState({
-    project: next.project,
+    project: keepProfile(next.project, s.project),
     revision: s.revision + 1,
     past: [...s.past, { project: s.project, label: next.label }],
     future: s.future.slice(1)

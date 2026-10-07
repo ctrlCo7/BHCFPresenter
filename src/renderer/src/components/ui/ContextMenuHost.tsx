@@ -50,6 +50,11 @@ function MenuList({
     const item = items[i]
     if (!item || !isActionable(item)) return
     if (item.type === 'submenu') {
+      if (item.onSelect) {
+        onDone()
+        item.onSelect()
+        return
+      }
       setOpenSub(i)
       setSubFocus(viaKeyboard)
       return
@@ -82,7 +87,10 @@ function MenuList({
         move(-1)
         break
       case 'ArrowRight':
-        if (items[active]?.type === 'submenu') activate(active, true)
+        if (items[active]?.type === 'submenu') {
+          setOpenSub(active)
+          setSubFocus(true)
+        }
         break
       case 'ArrowLeft':
         if (onExitLeft) {

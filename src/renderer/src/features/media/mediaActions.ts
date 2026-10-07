@@ -1,6 +1,7 @@
 import { mediaUrl } from '@shared/media'
 import type { Id, MediaAsset } from '@shared/model/types'
-import { addMediaAssets, mediaUsage, removeMediaAssets, updateMediaAsset } from '../../engine/projectOps'
+import { addMediaAssets, mediaSharedWith, mediaUsage, removeMediaFromProfile, updateMediaAsset } from '../../engine/projectOps'
+import { activeProfile } from '../../engine/tree'
 import { dialogs, errorMessage, toast } from '../../store/overlayStore'
 import { applyChange, requireProject, useProjectStore } from '../../store/projectStore'
 import { ui } from '../../store/uiStore'
@@ -197,19 +198,18 @@ export async function deleteMedia(ids: Id[]): Promise<void> {
     slides += u.slides
     entries += u.playlistEntries
   }
-  const usage =
-    slides + entries > 0
-      ? ` It is used by ${slides} slide(s) and ${entries} playlist item(s); slides will show a missing-media placeholder.`
-      : ''
   const names = ids.length === 1 ? `"${project.media[ids[0] as Id]?.name}"` : `${ids.length} media items`
-  const ok = await dialogs.confirm({
-    title: 'Remove media',
-    message: `Remove ${names} from the project?${usage}`,
-    confirmLabel: 'Remove',
-    danger: true
-  })
+  const profile = activeProfile(project)
+  const shared = mediaSharedWith(project, ids)
+  // Media other profiles still show is only taken out of this one.
+  const message = shared.length
+    ? `Remove ${names} from the "${profile.name}" profile? ${shared.map((p) => `"${p.name}"`).join(', ')} still use${shared.length === 1 ? 's' : ''} it, so it stays in the project.`
+    : `Remove ${names} from the project?${
+        slides + entries > 0 ? ` It is used by ${slides} slide(s) and ${entries} media playlist(s); slides will show a missing-media placeholder.` : ''
+      }`
+  const ok = await dialogs.confirm({ title: 'Remove media', message, confirmLabel: 'Remove', danger: true })
   if (!ok) return
-  applyChange('Remove media', (d) => removeMediaAssets(d, ids))
+  applyChange('Remove media', (d) => removeMediaFromProfile(d, ids))
   ui.set({ selectedMediaIds: [] })
 }
 

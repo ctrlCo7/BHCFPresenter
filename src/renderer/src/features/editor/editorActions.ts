@@ -17,6 +17,7 @@ import {
   type AlignMode,
   type OrderOp
 } from '../../engine/elementOps'
+import { live } from '../../live/liveStore'
 import { dialogs, toast } from '../../store/overlayStore'
 import { ApplyToAllDialog, type ApplyToAllResult } from './ApplyToAllDialog'
 import { applyChange, requireProject, useProjectStore } from '../../store/projectStore'
@@ -70,7 +71,7 @@ export function addMediaElement(asset: MediaAsset): void {
   const c = requireProject().settings.canvas
   if (asset.kind === 'image') addAndSelect('Add image', createImageElement(c, asset))
   else if (asset.kind === 'video') addAndSelect('Add video', createVideoElement(c, asset))
-  else toast.info('Audio cannot be placed on a slide', 'Play audio from the media bin or a playlist instead.')
+  else toast.info('Audio cannot be placed on a slide', 'Play audio from the Media tab instead.')
 }
 
 export function deleteSelectedElements(): void {
@@ -197,16 +198,27 @@ export function openOverlayEditor(overlayId: Id): void {
   if (requireProject().overlays[overlayId]) ui.edit({ kind: 'overlay', overlayId })
 }
 
-/** Enters Edit mode for whatever is currently open. */
+/**
+ * Enters Edit mode on what Show mode is displaying: the selected slide of the open presentation,
+ * else its live slide, else the slide last edited in it. The previous edit target (e.g. an
+ * overlay) is only reused when no presentation is open.
+ */
 export function enterEditMode(): void {
   const s = ui.get()
   const p = requireProject()
-  if (s.editTarget && targetSlide(p, s.editTarget)) {
-    ui.set({ mode: 'edit' })
+  const pres = s.activePresentationId ? p.presentations[s.activePresentationId] : undefined
+  if (pres) {
+    const has = (id: Id | null | undefined): id is Id => !!id && pres.slides.some((sl) => sl.id === id)
+    const cursor = live.get().cursor
+    const lastEdited = s.editTarget?.kind === 'slide' && s.editTarget.presentationId === pres.id ? s.editTarget.slideId : null
+    const slideId = [s.selectedSlideIds[0], cursor?.presentationId === pres.id ? cursor.slideId : null, lastEdited].find(has)
+    // Same slide as before: keep the editor's element selection.
+    if (slideId && slideId === lastEdited) ui.set({ mode: 'edit' })
+    else openEditor(pres.id, slideId)
     return
   }
-  if (s.activePresentationId && p.presentations[s.activePresentationId]) {
-    openEditor(s.activePresentationId)
+  if (s.editTarget && targetSlide(p, s.editTarget)) {
+    ui.set({ mode: 'edit' })
     return
   }
   toast.info('Nothing to edit', 'Open a presentation (or an overlay) first.')

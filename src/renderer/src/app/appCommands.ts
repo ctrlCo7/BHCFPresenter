@@ -19,6 +19,7 @@ import { importMedia } from '../features/media/mediaActions'
 import { addSlide } from '../features/presentation/slideActions'
 import { showAbout, showShortcuts } from '../features/shell/HelpDialogs'
 import { enterEditMode, openEditor } from '../features/editor/editorActions'
+import { toggleDarkMode } from '../services/theme'
 import { openSettings } from '../features/settings/SettingsDialog'
 import { newSong } from '../features/songs/songActions'
 import { openTemplates } from '../features/backgrounds/TemplatesDialog'
@@ -26,6 +27,7 @@ import { exportActivePresentation, importPresentationFile } from '../features/pr
 import { cleanupUnusedMedia } from '../features/media/mediaActions'
 import { clearAll, clearSlide, mediaStop, mediaToggle, nextSlide, prevSlide, toggleBlack, toggleLogo, toggleOutputs } from '../live/liveActions'
 import { live } from '../live/liveStore'
+import { sectionCommands } from '../live/sectionShortcuts'
 
 const hasProject = (): boolean => useProjectStore.getState().project !== null
 const hasPresentation = (): boolean => hasProject() && ui.get().activePresentationId !== null
@@ -41,6 +43,9 @@ function nativeEditTarget(): boolean {
 
 export function registerAppCommands(): void {
   const commands: Command[] = [
+    // Song sections first: in Show / Live mode with a song open they win over copy / paste.
+    ...sectionCommands(),
+
     // File
     { id: 'file.new', label: 'New Project…', category: 'File', defaultKeys: ['Mod+Shift+N'], allowInInput: true, run: newProject },
     { id: 'file.open', label: 'Open Project…', category: 'File', defaultKeys: ['Mod+O'], allowInInput: true, run: () => openProject() },
@@ -157,6 +162,7 @@ export function registerAppCommands(): void {
     },
     { id: 'view.zoomIn', label: 'Larger Thumbnails', category: 'View', defaultKeys: ['Mod+='], run: () => void ui.set({ thumbWidth: Math.min(420, ui.get().thumbWidth + 30) }) },
     { id: 'view.zoomOut', label: 'Smaller Thumbnails', category: 'View', defaultKeys: ['Mod+-'], run: () => void ui.set({ thumbWidth: Math.max(120, ui.get().thumbWidth - 30) }) },
+    { id: 'view.darkMode', label: 'Toggle Dark Mode', category: 'View', defaultKeys: ['Mod+Shift+D'], run: toggleDarkMode },
     { id: 'view.devtools', label: 'Developer Tools', category: 'View', run: () => void window.bhcf.app.toggleDevtools() },
 
     // Help

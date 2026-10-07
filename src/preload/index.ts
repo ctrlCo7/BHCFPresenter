@@ -27,7 +27,9 @@ const api: BhcfApi = {
     },
     toggleDevtools: () => call(IPC.windowToggleDevtools),
     log: (level, message) => ipcRenderer.send(IPC.appLog, level, String(message).slice(0, 8000)),
-    openLogs: () => call(IPC.appOpenLogs)
+    openLogs: () => call(IPC.appOpenLogs),
+    getTheme: () => call(IPC.appGetTheme),
+    setTheme: (theme) => call(IPC.appSetTheme, theme)
   },
   project: {
     recent: () => call(IPC.projectRecent),

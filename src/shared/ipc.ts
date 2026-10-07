@@ -18,6 +18,9 @@ export interface AppInfo {
   electronVersion: string
 }
 
+/** App colour theme: follow Windows / macOS, or force light or dark. */
+export type ThemePreference = 'system' | 'light' | 'dark'
+
 export interface RecentProject {
   path: string
   name: string
@@ -114,6 +117,8 @@ export const IPC = {
   appFlushDone: 'app:flush-done',
   appLog: 'app:log',
   appOpenLogs: 'app:open-logs',
+  appGetTheme: 'app:get-theme',
+  appSetTheme: 'app:set-theme',
   projectRecent: 'project:recent',
   projectRemoveRecent: 'project:remove-recent',
   projectCreate: 'project:create',
@@ -168,6 +173,9 @@ export interface BhcfApi {
     toggleDevtools(): Promise<void>
     log(level: 'info' | 'warn' | 'error', message: string): void
     openLogs(): Promise<void>
+    getTheme(): Promise<ThemePreference>
+    /** Saves the preference; the window's colours (and prefers-color-scheme) follow it. */
+    setTheme(theme: ThemePreference): Promise<void>
   }
   project: {
     recent(): Promise<RecentProject[]>

@@ -53,7 +53,7 @@ Runtime dependencies are limited to `react`, `react-dom`, `zustand`, `immer` and
   - black / logo, the media cue, active overlays, and timer runtimes;
   - the stage message, the transition override, master volume, and output status.
 - **Actions** (`live/liveActions.ts`):
-  - take, next/previous (crossing playlist items, including media cues), Clear, Clear All, Black, Logo;
+  - take, next/previous (crossing playlist items; within a Media-tab playlist after a media cue), Clear, Clear All, Black, Logo;
   - media transport, overlays, timers.
 - **Publisher** (`live/livePublisher.ts`):
   - Builds a self-contained `LiveState` from the operator state and the project: resolved slide, background, transition, assets, timers and audio target.
@@ -83,7 +83,9 @@ The document (`src/shared/model/types.ts`) contains:
   - groups (song sections);
   - an optional `song` (lyric source: sections + arrangement).
 - **Folders and trees:** for both the Library and Playlists.
-- **Playlists:** entries are presentation references, media cues or headers.
+- **Profiles:** one workspace per church event (Sunday Celebration, Lifeclass, Thanksgiving by default), shown as tabs under the toolbar. Each profile lists its own Library and Playlists tree roots, its media and its media playlists; the items themselves stay in the project's records (`presentations`, `playlists`, `folders`, `media`, `mediaPlaylists`), so a media asset can be shared by several profiles. `activeProfileId` is saved with the project; overlays, timers and settings are shared. Tree helpers (`engine/tree.ts`) read the active profile's roots, so tree operations act on the profile being shown. Projects before schema 4 become a "General" profile.
+- **Playlists:** a profile's service orders; entries are presentation references or headers.
+- **Media playlists:** per profile; typed ordered collections shown in the Media tab — image, video, audio, or background (images and videos); new projects start with Images, Backgrounds, Videos and Audio. Older projects' media playlist entries are moved into them on load.
 - **Media:** asset metadata plus an optional poster thumbnail.
 - **Overlays:** each one is a transparent slide, edited with the slide editor.
 - **Timers:** countdown, count-up, clock, or count down to a time of day.
@@ -123,7 +125,7 @@ Every action is a named command (`services/commands.ts`) with default keys. Menu
 | 2 Playlists and presentations | ✅ |
 | 3 Slide editor | ✅ Canvas with move / resize (Shift = keep aspect) / rotate (Shift = 15°), snapping guides (Alt disables), marquee multi-select, in-place text editing, layers (restack, hide, lock), inspector (position, size, rotation, opacity, shadow, full text styling, shapes, gradients, image/video fit), align and distribute, copy/paste/duplicate, undo/redo with gesture coalescing, slide / presentation / project backgrounds and transitions |
 | 4 Live mode | ✅ Click to go live, Program monitor (exact output render), dedicated Live workspace, next/previous across playlist items, Clear / Black / Logo / Clear All, customisable shortcuts |
-| 5 Media playback | ✅ Video/audio/image cues from the media bin or playlists, play / pause / stop / seek / loop / volume / mute / progress, poster thumbnails, video backgrounds and video elements |
+| 5 Media playback | ✅ Video/audio/image cues from the media bin or Media-tab playlists, play / pause / stop / seek / loop / volume / mute / progress, poster thumbnails, video backgrounds and video elements |
 | 6 Multiple outputs | ✅ Any number of outputs (audience or stage) on chosen screens, automatic placement, windowed mode for single-screen setups, Identify screens, reconnects when screens change |
 | 7 Lyrics and Bible | ✅ Song editor with sections and arrangement; Bible lookup, search, multi-verse slides, add to library or playlist, go live |
 | 8 Stage display | ✅ Current and next text, clock, selected timer, notes, operator messages, adjustable text size |

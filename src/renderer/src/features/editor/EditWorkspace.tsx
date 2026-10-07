@@ -52,10 +52,12 @@ import {
 } from './editorActions'
 import { ElementInspector, SlideInspector } from './Inspector'
 import { LayersPanel } from './LayersPanel'
+import { profileMediaRecord } from '../../engine/tree'
 import './editor.css'
 
 function mediaMenu(project: Project, kind: 'image' | 'video', anchor: HTMLElement): void {
-  const assets = Object.values(project.media).filter((m) => m.kind === kind)
+  // Offer this profile's media.
+  const assets = Object.values(profileMediaRecord(project)).filter((m) => m.kind === kind)
   const r = anchor.getBoundingClientRect()
   const items: MenuItem[] = [
     ...assets.map((a) => ({ label: a.name, onSelect: () => addMediaElement(a) })),
@@ -215,7 +217,7 @@ export function EditWorkspace(): ReactElement {
       <Splitter orientation="vertical" onDragStart={() => (start.current = ui.get().layout.rightWidth)} onDrag={(dx) => ui.setLayout({ rightWidth: Math.min(640, Math.max(300, start.current - dx)) })} />
       <aside className="edit-side" style={{ width: rightWidth }}>
         <div className="inspector">
-          {selectedEls.length > 0 ? <ElementInspector key={selectedEls.map((e) => e.id).join(',')} elements={selectedEls} media={project.media} /> : <SlideInspector project={project} target={target} slide={slide} />}
+          {selectedEls.length > 0 ? <ElementInspector key={selectedEls.map((e) => e.id).join(',')} elements={selectedEls} media={profileMediaRecord(project)} /> : <SlideInspector project={project} target={target} slide={slide} />}
         </div>
         <LayersPanel slide={slide} />
       </aside>

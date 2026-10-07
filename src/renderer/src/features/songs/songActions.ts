@@ -9,6 +9,7 @@ import { dialogs } from '../../store/overlayStore'
 import { applyChange, requireProject } from '../../store/projectStore'
 import { ui } from '../../store/uiStore'
 import { SongEditor, type SongEditorResult } from './SongEditor'
+import { rootList } from '../../engine/tree'
 
 const SONGS_FOLDER = 'Songs'
 
@@ -70,7 +71,7 @@ export async function newSong(): Promise<void> {
   pres.meta = { ...songMeta(result.song), ...(result.themeId ? { theme: result.themeId } : {}) }
   pres.background = result.background
   applyChange('New song', (d) => {
-    let folderId = d.trees.library.find((id) => d.folders[id]?.name === SONGS_FOLDER)
+    let folderId = rootList(d, 'library').find((id) => d.folders[id]?.name === SONGS_FOLDER)
     folderId ??= addFolder(d, 'library', SONGS_FOLDER).id
     addPresentation(d, pres, folderId)
     d.settings.linesPerSlide = result.linesPerSlide

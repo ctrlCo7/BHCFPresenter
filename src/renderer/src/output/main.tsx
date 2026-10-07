@@ -1,3 +1,4 @@
+import '../styles/fonts.css'
 import { createRoot } from 'react-dom/client'
 import { OutputApp } from './OutputApp'
 

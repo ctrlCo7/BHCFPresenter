@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { createPresentation, createProject, createSlide } from './factory'
 import { normalizeProject, ProjectFormatError } from './normalize'
+import type { Project, Profile } from './types'
+
+const active = (p: Project): Profile => p.profiles[p.activeProfileId] as Profile
 
 describe('normalizeProject', () => {
   it('round-trips a valid project unchanged', () => {
     const p = createProject('Church')
     const pres = createPresentation('Song', [createSlide(p.settings.canvas, 'Hello')])
     p.presentations[pres.id] = pres
-    p.trees.library.push(pres.id)
+    active(p).trees.library.push(pres.id)
     const { project, repairs } = normalizeProject(JSON.parse(JSON.stringify(p)))
     expect(repairs).toEqual([])
     expect(project).toEqual(p)
@@ -19,20 +22,22 @@ describe('normalizeProject', () => {
   })
 
   it('repairs dangling references, cycles and orphans', () => {
-    const p = createProject('Broken') as unknown as Record<string, unknown>
+    const base = createProject('Broken')
+    const p = base as unknown as Record<string, unknown>
     const pres = createPresentation('Orphan')
     p.presentations = { [pres.id]: pres }
     p.folders = {
       f1: { id: 'f1', scope: 'library', name: 'A', childIds: ['f2', 'missing'] },
       f2: { id: 'f2', scope: 'library', name: 'B', childIds: ['f1'] }
     }
-    p.trees = { library: ['f1', 'f1', 'ghost'], playlists: [] }
+    active(base).trees = { library: ['f1', 'f1', 'ghost'], playlists: [] }
     p.playlists = { pl: { id: 'pl', name: 'P', entries: [{ id: 'e', kind: 'presentation', presentationId: 'gone' }] } }
     const { project, repairs } = normalizeProject(p)
-    expect(project.trees.library).toEqual(['f1', pres.id])
+    expect(active(project).trees.library).toEqual(['f1', pres.id])
     expect(project.folders.f1?.childIds).toEqual(['f2'])
     expect(project.folders.f2?.childIds).toEqual([])
-    expect(project.trees.playlists).toEqual(['pl'])
+    // The unfiled playlist is recovered into the first profile.
+    expect(project.profiles[project.profileOrder[0] as string]?.trees.playlists).toEqual(['pl'])
     expect(project.playlists.pl?.entries).toEqual([])
     expect(repairs.length).toBeGreaterThan(0)
   })

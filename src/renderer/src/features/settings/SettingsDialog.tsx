@@ -1,27 +1,29 @@
-import { Crosshair, FolderOpen, Keyboard, Monitor, MonitorSmartphone, Plus, RotateCcw, Settings2, Trash2, Tv, Wrench, X } from 'lucide-react'
+import { Crosshair, FolderOpen, Keyboard, Laptop, Monitor, MonitorSmartphone, Moon, Palette, Plus, RotateCcw, Settings2, Sun, Trash2, Tv, Wrench, X } from 'lucide-react'
 import { createElement, useEffect, useState, type ReactElement } from 'react'
 import type { DisplayInfo, RemoteStatus } from '@shared/ipc'
 import { defaultStageLayout, type OutputConfig } from '@shared/live'
 import type { Project } from '@shared/model/types'
-import { ColorField, NumberField, Row, Section, Select, Slider, Toggle } from '../../components/ui/fields'
+import { ColorField, NumberField, Row, Section, Segmented, Select, Slider, Toggle } from '../../components/ui/fields'
+import { setTheme, useThemePreference } from '../../services/theme'
 import { setOutputsActive } from '../../live/liveActions'
 import { useLiveStore } from '../../live/liveStore'
 import { allCommands, eventToCombo, formatCombo, getCommand, keysFor, setKeysFor, type CommandCategory } from '../../services/commands'
 import { dialogs, errorMessage, toast } from '../../store/overlayStore'
 import { applyChange, useProjectStore } from '../../store/projectStore'
 import { BackgroundEditor, TransitionEditor } from '../editor/BackgroundEditor'
-import { FONT_FAMILIES } from '../editor/Inspector'
+import { FontPicker } from '../../components/ui/FontPicker'
 import { cleanupUnusedMedia } from '../media/mediaActions'
 import { exportActivePresentation, importPresentationFile } from '../presentation/transferActions'
 import './settings.css'
 
-export type SettingsTab = 'outputs' | 'stage' | 'project' | 'shortcuts' | 'remote' | 'maintenance'
+export type SettingsTab = 'appearance' | 'outputs' | 'stage' | 'project' | 'shortcuts' | 'remote' | 'maintenance'
 
 const TABS: { id: SettingsTab; label: string; icon: ReactElement }[] = [
   { id: 'outputs', label: 'Outputs', icon: <Tv size={15} /> },
   { id: 'stage', label: 'Stage Display', icon: <Monitor size={15} /> },
   { id: 'project', label: 'Project', icon: <Settings2 size={15} /> },
   { id: 'shortcuts', label: 'Shortcuts', icon: <Keyboard size={15} /> },
+  { id: 'appearance', label: 'Appearance', icon: <Palette size={15} /> },
   { id: 'remote', label: 'Remote', icon: <MonitorSmartphone size={15} /> },
   { id: 'maintenance', label: 'Maintenance', icon: <Wrench size={15} /> }
 ]
@@ -195,7 +197,7 @@ function ProjectTab({ project }: { project: Project }): ReactElement {
       </Section>
       <Section title="Default text (new slides, songs, scripture)">
         <Row label="Font">
-          <Select value={FONT_FAMILIES.includes(s.defaultTextStyle.fontFamily) ? s.defaultTextStyle.fontFamily : FONT_FAMILIES[0] as string} options={FONT_FAMILIES.map((f) => ({ value: f, label: f.split(',')[0] as string }))} onChange={(fontFamily) => set('Default font', (st) => (st.defaultTextStyle.fontFamily = fontFamily))} />
+          <FontPicker value={s.defaultTextStyle.fontFamily} onChange={(fontFamily) => set('Default font', (st) => (st.defaultTextStyle.fontFamily = fontFamily))} />
         </Row>
         <Row label="Size">
           <NumberField value={s.defaultTextStyle.fontSize} min={12} max={400} suffix="px" onChange={(fontSize) => set('Default font size', (st) => (st.defaultTextStyle.fontSize = fontSize))} />
@@ -221,7 +223,7 @@ function ProjectTab({ project }: { project: Project }): ReactElement {
   )
 }
 
-const CATEGORY_ORDER: CommandCategory[] = ['Live', 'Media', 'File', 'Edit', 'Library', 'Slides', 'View', 'Help']
+const CATEGORY_ORDER: CommandCategory[] = ['Live', 'Song', 'Media', 'File', 'Edit', 'Library', 'Slides', 'View', 'Help']
 
 function ShortcutsTab(): ReactElement {
   const [recording, setRecording] = useState<string | null>(null)
@@ -295,6 +297,26 @@ function ShortcutsTab(): ReactElement {
         )
       })}
     </>
+  )
+}
+
+function AppearanceTab(): ReactElement {
+  const preference = useThemePreference()
+  return (
+    <Section title="Appearance">
+      <Row label="Theme">
+        <Segmented
+          value={preference}
+          options={[
+            { value: 'light', label: <><Sun size={13} /> Light</> },
+            { value: 'dark', label: <><Moon size={13} /> Dark</> },
+            { value: 'system', label: <><Laptop size={13} /> Match Windows</>, title: 'Follow the Windows light / dark setting' }
+          ]}
+          onChange={(t) => void setTheme(t)}
+        />
+      </Row>
+      <p className="muted">Only changes how this app looks on this computer — slides and outputs are not affected.</p>
+    </Section>
   )
 }
 
@@ -409,6 +431,7 @@ function Settings({ initial, onClose }: { initial: SettingsTab; onClose: () => v
         {tab === 'stage' && project && <StageTab project={project} />}
         {tab === 'project' && project && <ProjectTab project={project} />}
         {tab === 'shortcuts' && <ShortcutsTab />}
+        {tab === 'appearance' && <AppearanceTab />}
         {tab === 'remote' && <RemoteTab />}
         {tab === 'maintenance' && project && <MaintenanceTab />}
       </div>

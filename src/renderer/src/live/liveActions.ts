@@ -58,8 +58,6 @@ function adjacentEntry(p: Project, ctx: PlaylistContext, dir: 1 | -1): { entry: 
     if (e.kind === 'presentation') {
       const pres = p.presentations[e.presentationId]
       if (pres && enabledSlides(pres).length > 0) return { entry: e, ctx: { playlistId: pl.id, entryId: e.id } }
-    } else if (e.kind === 'media' && p.media[e.mediaId]) {
-      return { entry: e, ctx: { playlistId: pl.id, entryId: e.id } }
     }
   }
   return null
@@ -71,9 +69,21 @@ function goToEntry(p: Project, target: { entry: PlaylistEntry; ctx: PlaylistCont
     const slides = enabledSlides(p.presentations[e.presentationId] as Presentation)
     const slide = dir === 1 ? slides[0] : slides[slides.length - 1]
     if (slide) take(e.presentationId, slide.id, target.ctx)
-  } else if (e.kind === 'media') {
-    playMedia(e.mediaId, target.ctx)
-    ui.set({ entrySelection: target.ctx, treeSelection: { scope: 'playlists', id: target.ctx.playlistId } })
+  }
+}
+
+/** Plays the next / previous item of the Media-tab playlist `ctx` points into (entryId = media id). */
+function stepMediaPlaylist(p: Project, ctx: PlaylistContext, dir: 1 | -1): void {
+  const ids = p.mediaPlaylists[ctx.playlistId]?.mediaIds ?? []
+  const i = ids.indexOf(ctx.entryId)
+  if (i < 0) return
+  for (let j = i + dir; j >= 0 && j < ids.length; j += dir) {
+    const id = ids[j] as Id
+    if (p.media[id]) {
+      playMedia(id, { playlistId: ctx.playlistId, entryId: id })
+      ui.set({ selectedMediaIds: [id] })
+      return
+    }
   }
 }
 
@@ -83,10 +93,9 @@ function step(dir: 1 | -1): void {
   const s = live.get()
   const cursor = s.cursor ?? s.last
 
-  // Continue the playlist after a media cue.
+  // Continue the media playlist the playing item came from.
   if (!s.cursor && s.mediaContext) {
-    const target = adjacentEntry(p, s.mediaContext, dir)
-    if (target) goToEntry(p, target, dir)
+    stepMediaPlaylist(p, s.mediaContext, dir)
     return
   }
 

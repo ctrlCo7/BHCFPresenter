@@ -5,15 +5,14 @@
  */
 import {
   BookOpen,
+  CalendarDays,
   ChevronRight,
   Copy,
   FileText,
-  Film,
   Folder,
   FolderOpen,
   FolderPlus,
   Heading,
-  Image as ImageIcon,
   ListMusic,
   ListPlus,
   Music,
@@ -24,7 +23,7 @@ import {
 } from 'lucide-react'
 import { memo, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { Id, PlaylistEntry, Project, TreeScope } from '@shared/model/types'
-import { childList, findParentId, flattenTree, isSelfOrDescendant, itemName, leafIdsUnder } from '../../engine/tree'
+import { childList, findParentId, flattenTree, isSelfOrDescendant, itemName, leafIdsUnder, profilePlaylists, rootList } from '../../engine/tree'
 import { moveNode, movePlaylistEntry, type NewPlaylistEntry } from '../../engine/projectOps'
 import { shortcutLabel } from '../../services/commands'
 import { beginDrag, currentDrag, dropPositionFor, endDrag, type DragPayload, type DropPosition } from '../../services/dragState'
@@ -32,8 +31,8 @@ import { setFocusZone, useZoneHandlers } from '../../services/focusZones'
 import { contextMenu, type MenuItem } from '../../store/overlayStore'
 import { applyChange, useProjectStore } from '../../store/projectStore'
 import { ui, useUiStore } from '../../store/uiStore'
-import { playBackground, playMedia } from '../../live/liveActions'
 import { editSong, newSong } from '../songs/songActions'
+import { otherProfiles, sendToProfile } from '../profiles/profileActions'
 import { exportPresentation } from '../presentation/transferActions'
 import {
   addHeader,
@@ -66,7 +65,6 @@ function buildRows(project: Project, scope: TreeScope, expanded: Record<Id, bool
 }
 
 function entriesFromPayload(project: Project, payload: DragPayload): NewPlaylistEntry[] {
-  if (payload.type === 'media') return payload.ids.filter((id) => project.media[id]).map((mediaId) => ({ kind: 'media', mediaId }))
   if (payload.type === 'node' && payload.scope === 'library') {
     return leafIdsUnder(project, payload.id)
       .filter((id) => project.presentations[id])
@@ -85,7 +83,7 @@ function resolveDrop(project: Project, scope: TreeScope, row: Row | null, payloa
   // Drop on empty space = root end of this tree.
   if (!row) {
     if (payload.type === 'node' && payload.scope === scope) {
-      return () => applyChange('Move', (d) => moveNode(d, scope, payload.id, null, d.trees[scope].length))
+      return () => applyChange('Move', (d) => moveNode(d, scope, payload.id, null, rootList(d, scope).length))
     }
     return null
   }
@@ -129,8 +127,6 @@ function resolveDrop(project: Project, scope: TreeScope, row: Row | null, payloa
   return null
 }
 
-const ENTRY_ICONS = { image: <ImageIcon size={14} />, video: <Film size={14} />, audio: <Music size={14} /> }
-
 interface RowViewProps {
   row: Row
   project: Project
@@ -161,10 +157,6 @@ const RowView = memo(function RowView({ row, project, selected, expanded, renami
       name = pres?.name ?? 'Missing presentation'
       icon = pres?.kind === 'song' ? <Music size={14} /> : pres?.kind === 'scripture' ? <BookOpen size={14} /> : <FileText size={14} />
       badge = pres ? String(pres.slides.length) : null
-    } else if (e.kind === 'media') {
-      const m = project.media[e.mediaId]
-      name = m?.name ?? 'Missing media'
-      icon = m ? ENTRY_ICONS[m.kind] : <ImageIcon size={14} />
     } else {
       name = e.title
       icon = <Heading size={14} />
@@ -280,11 +272,6 @@ export function TreeSection({ scope }: { scope: TreeScope }): ReactElement {
       ui.set({ treeSelection: { scope, id: row.playlistId } })
       if (e.kind === 'presentation') ui.openPresentation(e.presentationId, { playlistId: row.playlistId, entryId: e.id })
       else ui.set({ entrySelection: { playlistId: row.playlistId, entryId: e.id } })
-      if (e.kind === 'media') {
-        ui.set({ selectedMediaIds: [e.mediaId] })
-        // Media in a playlist is a cue: clicking it plays it on the output.
-        playMedia(e.mediaId, { playlistId: row.playlistId, entryId: e.id })
-      }
       return
     }
     ui.set({ treeSelection: { scope, id: row.id }, entrySelection: null })
@@ -378,9 +365,6 @@ export function TreeSection({ scope }: { scope: TreeScope }): ReactElement {
       const e = row.entry
       return [
         ...(e.kind === 'header' ? [{ label: 'Rename Header…', icon: <Pencil size={14} />, onSelect: () => void renameHeader(row.playlistId, e.id) }] : []),
-        ...(e.kind === 'media' && project.media[e.mediaId]?.kind !== 'audio'
-          ? [{ label: 'Use as Live Background (behind lyrics)', icon: <Film size={14} />, onSelect: () => playBackground(e.mediaId) }]
-          : []),
         { label: 'Add Header Below…', icon: <Heading size={14} />, onSelect: () => void addHeader(row.playlistId, row.index + 1) },
         { type: 'separator' },
         { label: 'Remove from Playlist', icon: <Trash2 size={14} />, danger: true, shortcut: shortcutLabel('edit.delete'), onSelect: () => removeEntry(row.playlistId, e.id) }
@@ -403,7 +387,7 @@ export function TreeSection({ scope }: { scope: TreeScope }): ReactElement {
           { label: 'Export…', onSelect: () => void exportPresentation(row.id) }
         )
       }
-      const playlists = Object.values(project.playlists)
+      const playlists = profilePlaylists(project)
       if (!isFolder || leafIdsUnder(project, row.id).length > 0) {
         items.push({
           type: 'submenu',
@@ -420,6 +404,14 @@ export function TreeSection({ scope }: { scope: TreeScope }): ReactElement {
     } else {
       items.push({ label: 'New Playlist', icon: <ListPlus size={14} />, onSelect: newPlaylist }, { label: 'New Folder', icon: <FolderPlus size={14} />, onSelect: () => newFolder('playlists') })
       if (isPlaylist) items.push({ label: 'Add Header…', icon: <Heading size={14} />, onSelect: () => void addHeader(row.id) })
+    }
+    const others = otherProfiles()
+    if (others.length) {
+      items.push(
+        { type: 'separator' },
+        { type: 'submenu', label: 'Copy to Profile', icon: <Copy size={14} />, items: others.map((o) => ({ label: o.name, onSelect: () => sendToProfile(scope, row.id, o.id, 'copy') })) },
+        { type: 'submenu', label: 'Move to Profile', icon: <CalendarDays size={14} />, items: others.map((o) => ({ label: o.name, onSelect: () => sendToProfile(scope, row.id, o.id, 'move') })) }
+      )
     }
     items.push(
       { type: 'separator' },
@@ -490,7 +482,7 @@ export function TreeSection({ scope }: { scope: TreeScope }): ReactElement {
     >
       {rows.length === 0 && (
         <div className="tree-empty">
-          {scope === 'library' ? 'No presentations yet. Right-click or use + to create one.' : 'No playlists yet. Create one to build a service order.'}
+          {scope === 'library' ? 'No presentations yet. Right-click or use + to create one.' : "No playlists yet. Create one to build this profile's service order."}
         </div>
       )}
       {rows.map((row) => (

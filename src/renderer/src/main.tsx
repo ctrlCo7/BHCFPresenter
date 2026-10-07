@@ -1,5 +1,6 @@
 // Base styles first so every component stylesheet can override them.
 import './styles/base.css'
+import './styles/fonts.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App'

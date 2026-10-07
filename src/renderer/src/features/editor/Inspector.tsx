@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import type { ReactElement } from 'react'
 import type { Background, Id, MediaAsset, Project, Shadow, Slide, SlideElement, TextStyle } from '@shared/model/types'
+import { FontPicker } from '../../components/ui/FontPicker'
 import { ColorField, NumberField, Row, Section, Segmented, Select, Slider, TextInput, Toggle } from '../../components/ui/fields'
 import { applyChange } from '../../store/projectStore'
 import type { EditTarget } from '../../store/uiStore'
@@ -19,23 +20,7 @@ import { BackgroundEditor, TransitionEditor } from './BackgroundEditor'
 import { applyCurrentSlideToAll, applyTextStyleToAll, editElements, editSlide } from './editorActions'
 import { useUiStore } from '../../store/uiStore'
 import { useProjectStore } from '../../store/projectStore'
-
-export const FONT_FAMILIES = [
-  'Segoe UI, Helvetica Neue, Arial, sans-serif',
-  'Arial, Helvetica, sans-serif',
-  'Calibri, Carlito, sans-serif',
-  'Verdana, Geneva, sans-serif',
-  'Tahoma, Geneva, sans-serif',
-  'Trebuchet MS, sans-serif',
-  'Impact, Haettenschweiler, sans-serif',
-  'Georgia, serif',
-  'Times New Roman, Times, serif',
-  'Garamond, Georgia, serif',
-  'Palatino Linotype, Palatino, serif',
-  'Cambria, Georgia, serif',
-  'Consolas, monospace',
-  'Courier New, monospace'
-]
+import { profileMediaRecord } from '../../engine/tree'
 
 const WEIGHTS = [
   { value: '300', label: 'Light' },
@@ -87,7 +72,7 @@ function TextSection({ el }: { el: Extract<SlideElement, { type: 'text' }> }): R
         onKeyDown={(e) => e.stopPropagation()}
       />
       <Row label="Font">
-        <TextInput value={s.fontFamily} list="font-families" onChange={(fontFamily) => fontFamily.trim() && setStyle({ fontFamily })} />
+        <FontPicker value={s.fontFamily} onChange={(fontFamily) => setStyle({ fontFamily })} />
       </Row>
       <Row label="Size / weight">
         <NumberField value={s.fontSize} min={6} max={600} suffix="px" onChange={(fontSize) => setStyle({ fontSize }, 'font-size')} />
@@ -328,11 +313,6 @@ export function ElementInspector({ elements, media }: { elements: SlideElement[]
       {allText && el.type === 'text' && <TextSection el={el} />}
       {!many && el.type === 'shape' && <ShapeSection el={el} />}
       {!many && (el.type === 'image' || el.type === 'video') && <MediaSection el={el} media={media} />}
-      <datalist id="font-families">
-        {FONT_FAMILIES.map((f) => (
-          <option key={f} value={f} />
-        ))}
-      </datalist>
     </>
   )
 }
@@ -381,7 +361,7 @@ export function SlideInspector({ project, target, slide }: { project: Project; t
       <Section title="Slide background">
         <BackgroundEditor
           value={slide.background}
-          media={project.media}
+          media={profileMediaRecord(project)}
           allowInherit
           inheritLabel="Use presentation background"
           onChange={(bg, coalesce) => editSlide('Slide background', (s) => (s.background = bg), coalesce)}
@@ -405,7 +385,7 @@ export function SlideInspector({ project, target, slide }: { project: Project; t
       </Section>
       {pres && (
         <Section title="Presentation background">
-          <BackgroundEditor value={pres.background} media={project.media} allowInherit inheritLabel="Use project default" onChange={setPresBackground} />
+          <BackgroundEditor value={pres.background} media={profileMediaRecord(project)} allowInherit inheritLabel="Use project default" onChange={setPresBackground} />
         </Section>
       )}
       <Section title="Slide transition">

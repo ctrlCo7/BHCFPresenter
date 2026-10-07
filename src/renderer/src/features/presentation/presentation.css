@@ -104,6 +104,20 @@
   border-radius: 0 0 4px 4px;
   font-size: 11.5px;
 }
+/* Full caption bar in the slide's (or its group's) colour, as in ProPresenter. */
+.thumb-footer.colored {
+  margin-top: 2px;
+  border-bottom: none;
+  background: var(--slide-color);
+}
+.thumb-footer.colored .thumb-index,
+.thumb-footer.colored .thumb-label {
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+}
+.thumb-footer.colored .thumb-label {
+  font-weight: 600;
+}
 .thumb-index {
   color: var(--text-2);
   font-weight: 600;

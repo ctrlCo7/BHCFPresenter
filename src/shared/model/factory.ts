@@ -7,8 +7,11 @@ import {
   type Id,
   type ImageElement,
   type MediaAsset,
+  type MediaPlaylistKind,
+  type MediaPlaylist,
   type Overlay,
   type Playlist,
+  type Profile,
   type Presentation,
   type PresentationKind,
   type Project,
@@ -74,8 +77,30 @@ export function defaultProjectSettings(): ProjectSettings {
   }
 }
 
+/** Church-event profiles every project starts with. */
+export const DEFAULT_PROFILE_NAMES = ['Sunday Celebration', 'Lifeclass', 'Thanksgiving'] as const
+
+/** A new, empty profile with the default media playlists (returned separately: they are project records). */
+export function createProfile(name: string): { profile: Profile; mediaPlaylists: MediaPlaylist[] } {
+  const now = nowIso()
+  const mediaPlaylists = defaultMediaPlaylists()
+  return {
+    profile: {
+      id: newId(),
+      name,
+      trees: { library: [], playlists: [] },
+      mediaIds: [],
+      mediaPlaylistOrder: mediaPlaylists.map((m) => m.id),
+      createdAt: now,
+      updatedAt: now
+    },
+    mediaPlaylists
+  }
+}
+
 export function createProject(name: string): Project {
   const now = nowIso()
+  const created = DEFAULT_PROFILE_NAMES.map((n) => createProfile(n))
   return {
     format: PROJECT_FORMAT,
     schemaVersion: PROJECT_SCHEMA_VERSION,
@@ -84,11 +109,14 @@ export function createProject(name: string): Project {
     createdAt: now,
     updatedAt: now,
     settings: defaultProjectSettings(),
-    trees: { library: [], playlists: [] },
+    profiles: Object.fromEntries(created.map((c) => [c.profile.id, c.profile])),
+    profileOrder: created.map((c) => c.profile.id),
+    activeProfileId: created[0]?.profile.id as Id,
     folders: {},
     presentations: {},
     playlists: {},
     media: {},
+    mediaPlaylists: Object.fromEntries(created.flatMap((c) => c.mediaPlaylists).map((m) => [m.id, m])),
     overlays: {},
     overlayOrder: [],
     timers: {},
@@ -214,6 +242,16 @@ export function createFolder(scope: TreeScope, name: string): Folder {
 export function createPlaylist(name: string): Playlist {
   const now = nowIso()
   return { id: newId(), name, entries: [], createdAt: now, updatedAt: now }
+}
+
+export function createMediaPlaylist(name: string, kind: MediaPlaylistKind, mediaIds: Id[] = []): MediaPlaylist {
+  const now = nowIso()
+  return { id: newId(), name, kind, mediaIds, createdAt: now, updatedAt: now }
+}
+
+/** The media playlists every project starts with. */
+export function defaultMediaPlaylists(): MediaPlaylist[] {
+  return [createMediaPlaylist('Images', 'image'), createMediaPlaylist('Backgrounds', 'background'), createMediaPlaylist('Videos', 'video'), createMediaPlaylist('Audio', 'audio')]
 }
 
 /** Deep-copies a slide giving it (and its elements) fresh ids. */

@@ -1,5 +1,5 @@
 import type { Id, Project, TreeScope } from '@shared/model/types'
-import { folderPath } from './tree'
+import { folderPath, idsInProfile } from './tree'
 
 export interface SearchHit {
   id: Id
@@ -42,15 +42,21 @@ export function searchProject(project: Project, query: string, limit = 200): Sea
     return f.startsWith(terms[0] as string) ? 100 : 60
   }
 
+  // Only the active profile's items.
+  const inLibrary = idsInProfile(project, 'library')
+  const inPlaylists = idsInProfile(project, 'playlists')
   for (const folder of Object.values(project.folders)) {
+    if (!(folder.scope === 'library' ? inLibrary : inPlaylists).has(folder.id)) continue
     const score = nameScore(folder.name)
     if (score) hits.push({ id: folder.id, scope: folder.scope, kind: 'folder', name: folder.name, path: folderPath(project, folder.scope, folder.id), snippet: null, slideIndex: null, score: score - 5 })
   }
   for (const pl of Object.values(project.playlists)) {
+    if (!inPlaylists.has(pl.id)) continue
     const score = nameScore(pl.name)
     if (score) hits.push({ id: pl.id, scope: 'playlists', kind: 'playlist', name: pl.name, path: folderPath(project, 'playlists', pl.id), snippet: null, slideIndex: null, score })
   }
   for (const pres of Object.values(project.presentations)) {
+    if (!inLibrary.has(pres.id)) continue
     const score = nameScore(pres.name)
     const path = folderPath(project, 'library', pres.id)
     if (score) {

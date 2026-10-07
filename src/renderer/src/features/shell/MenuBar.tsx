@@ -44,7 +44,7 @@ const MENUS: { label: string; items: MenuSpec[] }[] = [
     label: 'Live',
     items: ['live.next', 'live.prev', '-', 'live.clear', 'live.black', 'live.logo', 'live.clearAll', '-', 'media.toggle', 'media.stop', '-', 'live.outputs']
   },
-  { label: 'View', items: ['view.show', 'view.edit', 'view.live', '-', 'view.toggleMedia', 'view.zoomIn', 'view.zoomOut', '-', 'view.devtools'] },
+  { label: 'View', items: ['view.show', 'view.edit', 'view.live', '-', 'view.toggleMedia', 'view.zoomIn', 'view.zoomOut', '-', 'view.darkMode', '-', 'view.devtools'] },
   { label: 'Help', items: ['help.shortcuts', 'help.about'] }
 ]
 

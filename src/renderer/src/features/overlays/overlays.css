@@ -57,7 +57,7 @@
   overflow: hidden;
 }
 .overlay-thumb .sr-viewport {
-  background: repeating-conic-gradient(#c9d1cc 0 25%, #eef2ef 0 50%) 0 0 / 10px 10px;
+  background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0 0 / 10px 10px;
 }
 .overlay-name {
   flex: 1;

@@ -5,17 +5,21 @@
  * fields are filled with defaults, invalid items are dropped, and dangling tree / playlist
  * references are repaired. Every repair is reported so the UI can tell the user.
  */
-import { defaultBackground, defaultProjectSettings, defaultTextStyle, defaultTransition, nowIso } from './factory'
+import { createMediaPlaylist, createProfile, DEFAULT_PROFILE_NAMES, defaultBackground, defaultMediaPlaylists, defaultProjectSettings, defaultTextStyle, defaultTransition, nowIso } from './factory'
 import {
   PROJECT_FORMAT,
   PROJECT_SCHEMA_VERSION,
+  MEDIA_PLAYLIST_KINDS,
+  mediaPlaylistAccepts,
   type Background,
   type Folder,
   type Id,
   type MediaAsset,
+  type MediaPlaylist,
   type Overlay,
   type Playlist,
   type PlaylistEntry,
+  type Profile,
   type Presentation,
   type Project,
   type ProjectSettings,
@@ -53,6 +57,8 @@ const clamp = (v: number, min: number, max: number): number => Math.min(max, Mat
 const TRANSITIONS = ['cut', 'fade', 'dissolve', 'slide', 'push', 'zoom', 'wipe'] as const
 const DIRECTIONS = ['left', 'right', 'up', 'down'] as const
 const FITS = ['contain', 'cover', 'fill'] as const
+const MEDIA_KINDS = ['image', 'video', 'audio'] as const
+const KIND_LABELS = { image: 'Images', video: 'Videos', audio: 'Audio' } as const
 
 function normTransition(v: unknown): TransitionSpec | null {
   if (!isObj(v)) return null
@@ -253,7 +259,8 @@ function normTimer(id: Id, v: unknown): TimerDef | null {
 }
 
 /** Keeps only known ids, each once, and appends any that the order list missed. */
-function repairOrder(order: unknown, ids: Id[]): Id[] {
+/** The known ids in `order`, each once (unknown and repeated ids dropped). */
+function knownIds(order: unknown, ids: Id[]): Id[] {
   const known = new Set(ids)
   const seen = new Set<Id>()
   const out: Id[] = []
@@ -263,6 +270,13 @@ function repairOrder(order: unknown, ids: Id[]): Id[] {
       out.push(id)
     }
   }
+  return out
+}
+
+/** `order` repaired to list every id exactly once (missing ones appended). */
+function repairOrder(order: unknown, ids: Id[]): Id[] {
+  const out = knownIds(order, ids)
+  const seen = new Set(out)
   for (const id of ids) if (!seen.has(id)) out.push(id)
   return out
 }
@@ -320,7 +334,11 @@ function normMedia(id: Id, v: unknown): MediaAsset | null {
   }
 }
 
-function normPlaylist(id: Id, v: unknown, project: Pick<Project, 'presentations' | 'media'>, repairs: string[]): Playlist | null {
+/**
+ * `legacyMedia` collects media entries, which older versions kept in service-order playlists;
+ * the caller moves them into Media-tab playlists.
+ */
+function normPlaylist(id: Id, v: unknown, project: Pick<Project, 'presentations' | 'media'>, legacyMedia: Id[], repairs: string[]): Playlist | null {
   if (!isObj(v)) return null
   const name = str(v.name, 'Playlist')
   const entries: PlaylistEntry[] = []
@@ -330,14 +348,112 @@ function normPlaylist(id: Id, v: unknown, project: Pick<Project, 'presentations'
       if (project.presentations[e.presentationId]) entries.push({ id: e.id, kind: 'presentation', presentationId: e.presentationId })
       else repairs.push(`Removed a missing presentation from playlist "${name}".`)
     } else if (e.kind === 'media' && typeof e.mediaId === 'string') {
-      if (project.media[e.mediaId]) entries.push({ id: e.id, kind: 'media', mediaId: e.mediaId })
-      else repairs.push(`Removed a missing media item from playlist "${name}".`)
+      if (project.media[e.mediaId]) legacyMedia.push(e.mediaId)
     } else if (e.kind === 'header') {
       entries.push({ id: e.id, kind: 'header', title: str(e.title, 'Header'), color: str(e.color, '#64748b') })
     }
   }
   const now = nowIso()
   return { id, name, entries, createdAt: str(v.createdAt, now), updatedAt: str(v.updatedAt, now) }
+}
+
+function normMediaPlaylist(id: Id, v: unknown, media: Record<Id, MediaAsset>): MediaPlaylist | null {
+  if (!isObj(v)) return null
+  const kind = oneOf(v.kind, MEDIA_PLAYLIST_KINDS, 'image')
+  const ids = Array.isArray(v.mediaIds) ? v.mediaIds : []
+  const now = nowIso()
+  return {
+    id,
+    name: str(v.name, 'Playlist'),
+    kind,
+    // Only existing media the playlist accepts, each once.
+    mediaIds: [...new Set(ids.filter((m): m is string => typeof m === 'string' && mediaPlaylistAccepts(kind, media[m]?.kind)))],
+    createdAt: str(v.createdAt, now),
+    updatedAt: str(v.updatedAt, now)
+  }
+}
+
+/** Puts media from an old service-order playlist into Media-tab playlists named after it, one per kind. */
+function moveLegacyMedia(name: string, mediaIds: Id[], media: Record<Id, MediaAsset>, playlists: Record<Id, MediaPlaylist>, order: Id[]): void {
+  const kinds = MEDIA_KINDS.filter((k) => mediaIds.some((id) => media[id]?.kind === k))
+  for (const kind of kinds) {
+    const ids = [...new Set(mediaIds.filter((id) => media[id]?.kind === kind))]
+    const label = kinds.length > 1 ? `${name} (${KIND_LABELS[kind]})` : name
+    const m = createMediaPlaylist(label, kind, ids)
+    playlists[m.id] = m
+    order.push(m.id)
+  }
+}
+
+/** Schema 3 added a Backgrounds media playlist; older projects get one right after Images. */
+function addBackgroundsPlaylist(mediaPlaylists: Record<Id, MediaPlaylist>, mediaOrder: Id[]): void {
+  if (mediaOrder.some((id) => mediaPlaylists[id]?.kind === 'background')) return
+  const bg = createMediaPlaylist('Backgrounds', 'background')
+  mediaPlaylists[bg.id] = bg
+  const images = mediaOrder.findIndex((id) => mediaPlaylists[id]?.kind === 'image')
+  mediaOrder.splice(images + 1, 0, bg.id)
+}
+
+/** The stored shape of a profile before repair. */
+interface RawProfile {
+  id: Id
+  name: string
+  trees: Obj
+  mediaIds: unknown
+  mediaPlaylistOrder: unknown
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * Profiles as stored. Projects before schema 4 had a single workspace: it becomes a "General"
+ * profile holding everything, followed by empty church-event profiles.
+ */
+function rawProfiles(raw: Obj, version: number, now: string): { list: RawProfile[]; legacy: boolean } {
+  if (version >= 4 && isObj(raw.profiles)) {
+    const stored = raw.profiles
+    const list: RawProfile[] = []
+    for (const id of repairOrder(raw.profileOrder, Object.keys(stored))) {
+      const v = stored[id]
+      if (!isObj(v)) continue
+      list.push({
+        id,
+        name: str(v.name, 'Profile'),
+        trees: isObj(v.trees) ? v.trees : {},
+        mediaIds: v.mediaIds,
+        mediaPlaylistOrder: v.mediaPlaylistOrder,
+        createdAt: str(v.createdAt, now),
+        updatedAt: str(v.updatedAt, now)
+      })
+    }
+    if (list.length) return { list, legacy: false }
+  }
+  return {
+    legacy: true,
+    list: [
+      {
+        id: globalThis.crypto.randomUUID(),
+        name: 'General',
+        trees: isObj(raw.trees) ? raw.trees : {},
+        mediaIds: isObj(raw.media) ? Object.keys(raw.media) : [],
+        mediaPlaylistOrder: raw.mediaPlaylistOrder,
+        createdAt: now,
+        updatedAt: now
+      }
+    ]
+  }
+}
+
+/** Schema 3 created empty event playlists, which are now profiles; drop the untouched ones. */
+function dropAutoEventPlaylists(playlists: Record<Id, Playlist>, roots: Id[]): void {
+  const names = new Set<string>(DEFAULT_PROFILE_NAMES)
+  for (const id of [...roots]) {
+    const pl = playlists[id]
+    if (pl && names.has(pl.name) && pl.entries.length === 0) {
+      delete playlists[id]
+      roots.splice(roots.indexOf(id), 1)
+    }
+  }
 }
 
 function normSettings(v: unknown): ProjectSettings {
@@ -358,16 +474,17 @@ function normSettings(v: unknown): ProjectSettings {
 }
 
 /**
- * Rebuilds a tree so every item appears exactly once, folders contain only valid children
- * and nothing forms a cycle. Items that exist but are unreachable are appended to the root.
+ * Rebuilds one scope's trees (one root list per profile) so every item appears exactly once
+ * across all profiles, folders contain only valid children and nothing forms a cycle. Items
+ * that exist but are unreachable are appended to the first profile's root.
  */
-function repairTree(
+function repairTrees(
   scope: TreeScope,
-  rootIds: unknown,
+  rootLists: unknown[],
   folders: Record<Id, Folder>,
   leafIds: Set<Id>,
   repairs: string[]
-): Id[] {
+): Id[][] {
   const seen = new Set<Id>()
   const visit = (ids: unknown, ancestors: Set<Id>): Id[] => {
     const out: Id[] = []
@@ -386,7 +503,8 @@ function repairTree(
     }
     return out
   }
-  const roots = visit(rootIds, new Set())
+  const lists = rootLists.map((ids) => visit(ids, new Set()))
+  const roots = lists[0] ?? []
   for (const folder of Object.values(folders)) {
     if (folder.scope === scope && !seen.has(folder.id)) {
       seen.add(folder.id)
@@ -401,7 +519,7 @@ function repairTree(
       repairs.push(`Recovered an unfiled item into the ${scope} root.`)
     }
   }
-  return roots
+  return lists
 }
 
 export function normalizeProject(raw: unknown): NormalizeResult {
@@ -415,7 +533,8 @@ export function normalizeProject(raw: unknown): NormalizeResult {
   }
   // Schema 1 → 2 added songs, overlays, timers, video thumbnails and logo/lyrics settings.
   // Every new field has a default below, so migrating is just normalising.
-  // Future breaking changes add explicit steps here: `if (version < 3) raw = migrateV2toV3(raw)`.
+  // Schema 2 → 3 added the Backgrounds media playlist (and briefly, event-named playlists).
+  // Schema 3 → 4 added profiles: the old single workspace becomes "General" (see rawProfiles).
 
   const repairs: string[] = []
   const now = nowIso()
@@ -438,11 +557,41 @@ export function normalizeProject(raw: unknown): NormalizeResult {
     }
   }
 
+  const { list: stored, legacy } = rawProfiles(raw, version, now)
+
+  const mediaPlaylists: Record<Id, MediaPlaylist> = {}
+  if (isObj(raw.mediaPlaylists)) {
+    for (const [id, v] of Object.entries(raw.mediaPlaylists)) {
+      const m = normMediaPlaylist(id, v, media)
+      if (m) mediaPlaylists[id] = m
+    }
+  } else if (legacy) {
+    // Projects from before Media-tab playlists start with the defaults.
+    const defaults = defaultMediaPlaylists()
+    for (const m of defaults) mediaPlaylists[m.id] = m
+    for (const p of stored) p.mediaPlaylistOrder = defaults.map((m) => m.id)
+  }
+  // Each media playlist belongs to exactly one profile; strays go to the first.
+  const claimed = new Set<Id>()
+  const mediaOrders = stored.map((p) => {
+    const order = knownIds(p.mediaPlaylistOrder, Object.keys(mediaPlaylists)).filter((id) => !claimed.has(id))
+    for (const id of order) claimed.add(id)
+    return order
+  })
+  for (const id of Object.keys(mediaPlaylists)) if (!claimed.has(id)) mediaOrders[0]?.push(id)
+  // Legacy media entries of service-order playlists move into the first profile's Media tab.
+  const firstMediaOrder = mediaOrders[0] ?? []
+
   const playlists: Record<Id, Playlist> = {}
   if (isObj(raw.playlists)) {
     for (const [id, v] of Object.entries(raw.playlists)) {
-      const p = normPlaylist(id, v, { presentations, media }, repairs)
+      const legacyMedia: Id[] = []
+      const p = normPlaylist(id, v, { presentations, media }, legacyMedia, repairs)
       if (p) playlists[id] = p
+      if (legacyMedia.length) {
+        moveLegacyMedia(p?.name ?? 'Playlist', legacyMedia, media, mediaPlaylists, firstMediaOrder)
+        repairs.push(`Moved ${legacyMedia.length} media item(s) from playlist "${p?.name ?? 'Playlist'}" to the Media tab.`)
+      }
     }
   }
 
@@ -475,9 +624,43 @@ export function normalizeProject(raw: unknown): NormalizeResult {
     }
   }
 
-  const trees = isObj(raw.trees) ? raw.trees : {}
-  const libraryRoots = repairTree('library', trees.library, folders, new Set(Object.keys(presentations)), repairs)
-  const playlistRoots = repairTree('playlists', trees.playlists, folders, new Set(Object.keys(playlists)), repairs)
+  const libraryRoots = repairTrees('library', stored.map((p) => p.trees.library), folders, new Set(Object.keys(presentations)), repairs)
+  const playlistRoots = repairTrees('playlists', stored.map((p) => p.trees.playlists), folders, new Set(Object.keys(playlists)), repairs)
+
+  // Media: each profile lists existing assets once; assets in no profile go to the first.
+  const listed = new Set<Id>()
+  const mediaLists = stored.map((p) => {
+    const ids = [...new Set(Array.isArray(p.mediaIds) ? p.mediaIds.filter((id): id is string => typeof id === 'string' && !!media[id]) : [])]
+    for (const id of ids) listed.add(id)
+    return ids
+  })
+  for (const id of Object.keys(media)) if (!listed.has(id)) mediaLists[0]?.push(id)
+
+  if (version < 3) for (const order of mediaOrders) addBackgroundsPlaylist(mediaPlaylists, order)
+  if (version === 3 && legacy) dropAutoEventPlaylists(playlists, playlistRoots[0] ?? [])
+
+  const profiles: Record<Id, Profile> = {}
+  stored.forEach((p, i) => {
+    profiles[p.id] = {
+      id: p.id,
+      name: p.name,
+      trees: { library: libraryRoots[i] ?? [], playlists: playlistRoots[i] ?? [] },
+      mediaIds: mediaLists[i] ?? [],
+      mediaPlaylistOrder: mediaOrders[i] ?? [],
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt
+    }
+  })
+  if (legacy) {
+    // Schema 4: empty church-event profiles next to "General".
+    for (const name of DEFAULT_PROFILE_NAMES) {
+      const c = createProfile(name)
+      profiles[c.profile.id] = c.profile
+      for (const m of c.mediaPlaylists) mediaPlaylists[m.id] = m
+    }
+  }
+  const profileOrder = Object.keys(profiles)
+  const activeProfileId = typeof raw.activeProfileId === 'string' && profiles[raw.activeProfileId] ? raw.activeProfileId : (profileOrder[0] as Id)
 
   const project: Project = {
     format: PROJECT_FORMAT,
@@ -487,11 +670,14 @@ export function normalizeProject(raw: unknown): NormalizeResult {
     createdAt: str(raw.createdAt, now),
     updatedAt: str(raw.updatedAt, now),
     settings: normSettings(raw.settings),
-    trees: { library: libraryRoots, playlists: playlistRoots },
+    profiles,
+    profileOrder,
+    activeProfileId,
     folders,
     presentations,
     playlists,
     media,
+    mediaPlaylists,
     overlays,
     overlayOrder: repairOrder(raw.overlayOrder, Object.keys(overlays)),
     timers,

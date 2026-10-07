@@ -4,7 +4,7 @@ import { allCommands, formatCombo, keysFor, type CommandCategory } from '../../s
 import { dialogs } from '../../store/overlayStore'
 import { LogoMark } from './LogoMark'
 
-const ORDER: CommandCategory[] = ['Live', 'Media', 'File', 'Edit', 'Library', 'Slides', 'View', 'Help']
+const ORDER: CommandCategory[] = ['Live', 'Song', 'Media', 'File', 'Edit', 'Library', 'Slides', 'View', 'Help']
 
 function ShortcutList(): ReactElement {
   const commands = allCommands().filter((c) => keysFor(c.id).length > 0)

@@ -76,10 +76,10 @@ body.resizing-row * {
   min-width: 200px;
   max-width: 340px;
   padding: 4px;
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius);
-  box-shadow: 0 12px 32px rgba(20, 50, 30, 0.18);
+  box-shadow: 0 12px 32px var(--shadow);
   outline: none;
 }
 .ctx-item {
@@ -136,7 +136,7 @@ body.resizing-row * {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 35, 22, 0.35);
+  background: var(--backdrop);
   animation: fade-in 0.12s ease-out;
 }
 .modal {
@@ -147,7 +147,7 @@ body.resizing-row * {
   background: var(--bg-1);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-l);
-  box-shadow: 0 24px 64px rgba(20, 50, 30, 0.25);
+  box-shadow: 0 24px 64px var(--shadow);
   animation: pop-in 0.14s ease-out;
 }
 .modal-header {
@@ -207,11 +207,11 @@ body.resizing-row * {
   align-items: flex-start;
   gap: 10px;
   padding: 10px 8px 10px 12px;
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid var(--line-strong);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius);
-  box-shadow: 0 10px 28px rgba(20, 50, 30, 0.18);
+  box-shadow: 0 10px 28px var(--shadow);
   pointer-events: auto;
   animation: slide-in 0.18s ease-out;
 }

@@ -10,6 +10,7 @@ import { take } from '../../live/liveActions'
 import { contextMenu, errorMessage, toast } from '../../store/overlayStore'
 import { applyChange, useProjectStore } from '../../store/projectStore'
 import { ui, useUiStore } from '../../store/uiStore'
+import { profilePlaylists, rootList } from '../../engine/tree'
 import './bible.css'
 
 const SCRIPTURE_FOLDER = 'Scripture'
@@ -17,7 +18,7 @@ const SCRIPTURE_FOLDER = 'Scripture'
 /** Adds a scripture presentation to the library's "Scripture" folder (created on first use). */
 function addScripture(pres: Presentation, playlistId?: Id): void {
   applyChange('Add scripture', (d) => {
-    let folderId = d.trees.library.find((id) => d.folders[id]?.name === SCRIPTURE_FOLDER)
+    let folderId = rootList(d, 'library').find((id) => d.folders[id]?.name === SCRIPTURE_FOLDER)
     folderId ??= addFolder(d, 'library', SCRIPTURE_FOLDER).id
     addPresentation(d, pres, folderId)
     if (playlistId) addPlaylistEntries(d, playlistId, [{ kind: 'presentation', presentationId: pres.id }])
@@ -136,7 +137,7 @@ export function BiblePanel(): ReactElement {
 
   const addToPlaylistMenu = (e: React.MouseEvent<HTMLElement>): void => {
     const r = e.currentTarget.getBoundingClientRect()
-    const playlists = Object.values(project.playlists)
+    const playlists = profilePlaylists(project)
     contextMenu.open({
       x: r.left,
       y: r.top - 8 - Math.min(6, Math.max(1, playlists.length)) * 26,

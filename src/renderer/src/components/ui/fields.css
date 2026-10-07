@@ -172,3 +172,83 @@
   color: var(--accent-strong);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
+
+/* ---------------------------- Font picker ---------------------------- */
+.font-picker {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+}
+.font-picker-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.font-picker-chevron {
+  flex: none;
+  color: var(--text-3);
+}
+.font-pop {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px var(--shadow);
+}
+.font-pop-search {
+  width: 100%;
+}
+.font-pop-list {
+  overflow-y: auto;
+}
+.font-pop-group {
+  position: sticky;
+  top: 0;
+  padding: 6px 6px 3px;
+  background: var(--bg-1);
+  color: var(--text-3);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.font-pop-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: var(--radius-s);
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+.font-pop-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+.font-pop-check {
+  display: flex;
+  flex: none;
+  width: 14px;
+}
+.font-pop-empty {
+  padding: 10px 6px;
+  color: var(--text-3);
+  font-family: var(--font-ui);
+}

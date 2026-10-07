@@ -10,7 +10,9 @@ import {
   cloneSlide,
   clonePresentation,
   createFolder,
+  createMediaPlaylist,
   createPlaylist,
+  createProfile,
   newId,
   nowIso
 } from '@shared/model/factory'
@@ -18,14 +20,18 @@ import type {
   Folder,
   Id,
   MediaAsset,
+  MediaPlaylistKind,
+  MediaPlaylist,
   Playlist,
+  Profile,
   PlaylistEntry,
   Presentation,
   Project,
   Slide,
   TreeScope
 } from '@shared/model/types'
-import { childList, findParentId, getTreeItem, isSelfOrDescendant, leafIdsUnder } from './tree'
+import { mediaPlaylistAccepts } from '@shared/model/types'
+import { activeProfile, childList, findParentId, getTreeItem, idsInProfile, isSelfOrDescendant, leafIdsUnder, rootList } from './tree'
 
 /** Immer drafts are proxies that structuredClone cannot copy; snapshot them first. */
 function plain<T>(value: T): T {
@@ -58,7 +64,7 @@ function targetList(p: Project, scope: TreeScope, parentId: Id | null): Id[] {
     if (!folder || folder.scope !== scope) throw new Error('Target folder does not exist.')
     return folder.childIds
   }
-  return p.trees[scope]
+  return rootList(p, scope)
 }
 
 /**
@@ -212,7 +218,6 @@ export function playlistReferencesTo(p: Project, id: Id): number {
 
 export type NewPlaylistEntry =
   | { kind: 'presentation'; presentationId: Id }
-  | { kind: 'media'; mediaId: Id }
   | { kind: 'header'; title: string; color: string }
 
 export function addPlaylistEntries(p: Project, playlistId: Id, entries: NewPlaylistEntry[], index?: number): Id[] {
@@ -221,7 +226,6 @@ export function addPlaylistEntries(p: Project, playlistId: Id, entries: NewPlayl
   const created: PlaylistEntry[] = []
   for (const e of entries) {
     if (e.kind === 'presentation' && !p.presentations[e.presentationId]) continue
-    if (e.kind === 'media' && !p.media[e.mediaId]) continue
     created.push({ ...e, id: newId() })
   }
   const i = index === undefined ? pl.entries.length : Math.max(0, Math.min(index, pl.entries.length))
@@ -336,8 +340,13 @@ export function setSlideText(p: Project, presentationId: Id, slideId: Id, text: 
 /* Media                                                               */
 /* ------------------------------------------------------------------ */
 
+/** Adds assets to the project and to the active profile's media. */
 export function addMediaAssets(p: Project, assets: MediaAsset[]): void {
-  for (const a of assets) p.media[a.id] = a
+  const profile = activeProfile(p)
+  for (const a of assets) {
+    p.media[a.id] = a
+    if (!profile.mediaIds.includes(a.id)) profile.mediaIds.push(a.id)
+  }
 }
 
 export function updateMediaAsset(p: Project, id: Id, patch: Partial<Pick<MediaAsset, 'name' | 'width' | 'height' | 'durationSec'>>): void {
@@ -355,18 +364,199 @@ export function mediaUsage(p: Project, mediaId: Id): { slides: number; playlistE
       if (usesBg(s.background) || s.elements.some((e) => (e.type === 'image' || e.type === 'video') && e.mediaId === mediaId)) slides++
     }
   }
-  for (const pl of Object.values(p.playlists)) for (const e of pl.entries) if (e.kind === 'media' && e.mediaId === mediaId) playlistEntries++
+  for (const pl of Object.values(p.mediaPlaylists)) if (pl.mediaIds.includes(mediaId)) playlistEntries++
   return { slides, playlistEntries }
 }
 
 /**
- * Removes assets from the project and from playlists. Slides that still reference them render
- * a "missing media" placeholder. Files stay on disk so undo can bring the asset back.
+ * Removes assets from the project and from media playlists. Slides that still reference them
+ * render a "missing media" placeholder. Files stay on disk so undo can bring the asset back.
  */
 export function removeMediaAssets(p: Project, ids: Id[]): void {
   const remove = new Set(ids)
   for (const id of ids) delete p.media[id]
-  for (const pl of Object.values(p.playlists)) {
-    pl.entries = pl.entries.filter((e) => !(e.kind === 'media' && remove.has(e.mediaId)))
+  for (const pl of Object.values(p.mediaPlaylists)) {
+    if (pl.mediaIds.some((id) => remove.has(id))) pl.mediaIds = pl.mediaIds.filter((id) => !remove.has(id))
   }
+  for (const profile of Object.values(p.profiles)) {
+    if (profile.mediaIds.some((id) => remove.has(id))) profile.mediaIds = profile.mediaIds.filter((id) => !remove.has(id))
+  }
+}
+
+/**
+ * Takes media out of the active profile (and its media playlists). Assets no other profile
+ * uses are removed from the project. Returns the ids removed from the project.
+ */
+export function removeMediaFromProfile(p: Project, ids: Id[]): Id[] {
+  const profile = activeProfile(p)
+  const remove = new Set(ids)
+  profile.mediaIds = profile.mediaIds.filter((id) => !remove.has(id))
+  for (const plId of profile.mediaPlaylistOrder) {
+    const pl = p.mediaPlaylists[plId]
+    if (pl && pl.mediaIds.some((id) => remove.has(id))) pl.mediaIds = pl.mediaIds.filter((id) => !remove.has(id))
+  }
+  const orphans = ids.filter((id) => !Object.values(p.profiles).some((pr) => pr.mediaIds.includes(id)))
+  removeMediaAssets(p, orphans)
+  return orphans
+}
+
+/** How many other profiles also show each of these assets. */
+export function mediaSharedWith(p: Project, ids: Id[]): Profile[] {
+  const active = activeProfile(p)
+  return Object.values(p.profiles).filter((pr) => pr.id !== active.id && ids.some((id) => pr.mediaIds.includes(id)))
+}
+
+/* ------------------------------------------------------------------ */
+/* Media playlists                                                     */
+/* ------------------------------------------------------------------ */
+
+export function addMediaPlaylist(p: Project, name: string, kind: MediaPlaylistKind): MediaPlaylist {
+  const pl = createMediaPlaylist(name, kind)
+  p.mediaPlaylists[pl.id] = pl
+  activeProfile(p).mediaPlaylistOrder.push(pl.id)
+  return pl
+}
+
+export function deleteMediaPlaylist(p: Project, id: Id): void {
+  delete p.mediaPlaylists[id]
+  for (const profile of Object.values(p.profiles)) profile.mediaPlaylistOrder = profile.mediaPlaylistOrder.filter((x) => x !== id)
+}
+
+export function renameMediaPlaylist(p: Project, id: Id, name: string): void {
+  const pl = p.mediaPlaylists[id]
+  if (!pl || !name.trim()) return
+  pl.name = name.trim()
+  pl.updatedAt = nowIso()
+}
+
+/** Appends media the playlist accepts and doesn't already hold. Returns the ids added. */
+export function addToMediaPlaylist(p: Project, id: Id, mediaIds: Id[]): Id[] {
+  const pl = p.mediaPlaylists[id]
+  if (!pl) return []
+  const have = new Set(pl.mediaIds)
+  const added: Id[] = []
+  for (const m of mediaIds) {
+    if (!mediaPlaylistAccepts(pl.kind, p.media[m]?.kind) || have.has(m)) continue
+    have.add(m)
+    added.push(m)
+  }
+  if (added.length) {
+    pl.mediaIds.push(...added)
+    pl.updatedAt = nowIso()
+  }
+  return added
+}
+
+export function removeFromMediaPlaylist(p: Project, id: Id, mediaIds: Id[]): void {
+  const pl = p.mediaPlaylists[id]
+  if (!pl) return
+  const remove = new Set(mediaIds)
+  pl.mediaIds = pl.mediaIds.filter((m) => !remove.has(m))
+  pl.updatedAt = nowIso()
+}
+
+/** Moves media within a playlist so they sit before `beforeId` (null = the end). */
+export function moveInMediaPlaylist(p: Project, id: Id, mediaIds: Id[], beforeId: Id | null): void {
+  const pl = p.mediaPlaylists[id]
+  if (!pl) return
+  const moving = new Set(mediaIds.filter((m) => pl.mediaIds.includes(m)))
+  if (moving.size === 0 || (beforeId && moving.has(beforeId))) return
+  const rest = pl.mediaIds.filter((m) => !moving.has(m))
+  const at = beforeId ? rest.indexOf(beforeId) : rest.length
+  rest.splice(at < 0 ? rest.length : at, 0, ...pl.mediaIds.filter((m) => moving.has(m)))
+  pl.mediaIds = rest
+  pl.updatedAt = nowIso()
+}
+
+/* ------------------------------------------------------------------ */
+/* Profiles                                                            */
+/* ------------------------------------------------------------------ */
+
+export function addProfile(p: Project, name: string, index?: number): Profile {
+  const { profile, mediaPlaylists } = createProfile(name)
+  p.profiles[profile.id] = profile
+  for (const m of mediaPlaylists) p.mediaPlaylists[m.id] = m
+  insertAt(p.profileOrder, profile.id, index)
+  return profile
+}
+
+export function setActiveProfile(p: Project, id: Id): void {
+  if (p.profiles[id]) p.activeProfileId = id
+}
+
+export function renameProfile(p: Project, id: Id, name: string): void {
+  const profile = p.profiles[id]
+  if (!profile || !name.trim()) return
+  profile.name = name.trim()
+  profile.updatedAt = nowIso()
+}
+
+/** Moves a profile tab to `index` (position before the move). */
+export function moveProfile(p: Project, id: Id, index: number): void {
+  const from = p.profileOrder.indexOf(id)
+  if (from < 0) return
+  p.profileOrder.splice(from, 1)
+  insertAt(p.profileOrder, id, from < index ? index - 1 : index)
+}
+
+/**
+ * Deletes a profile with its pages, playlists and media playlists. Media only it uses is
+ * removed from the project. The last profile cannot be deleted.
+ */
+export function deleteProfile(p: Project, id: Id): void {
+  const profile = p.profiles[id]
+  if (!profile || p.profileOrder.length <= 1) return
+  const previous = p.activeProfileId
+  p.activeProfileId = id
+  for (const scope of ['library', 'playlists'] as const) for (const node of [...profile.trees[scope]]) deleteNode(p, scope, node)
+  for (const plId of profile.mediaPlaylistOrder) delete p.mediaPlaylists[plId]
+  const ids = [...profile.mediaIds]
+  delete p.profiles[id]
+  p.profileOrder = p.profileOrder.filter((x) => x !== id)
+  removeMediaAssets(p, ids.filter((m) => !Object.values(p.profiles).some((pr) => pr.mediaIds.includes(m))))
+  p.activeProfileId = previous !== id && p.profiles[previous] ? previous : (p.profileOrder[0] as Id)
+}
+
+/** Media used by slides of the given presentations (backgrounds and image/video elements). */
+export function presentationMediaIds(p: Project, presentationIds: Id[]): Id[] {
+  const out = new Set<Id>()
+  const bg = (b: Presentation['background']): void => {
+    if (b && (b.type === 'image' || b.type === 'video')) out.add(b.mediaId)
+  }
+  for (const id of presentationIds) {
+    const pres = p.presentations[id]
+    if (!pres) continue
+    bg(pres.background)
+    for (const s of pres.slides) {
+      bg(s.background)
+      for (const e of s.elements) if (e.type === 'image' || e.type === 'video') out.add(e.mediaId)
+    }
+  }
+  return [...out].filter((id) => p.media[id])
+}
+
+/** Adds existing assets to another profile's media (they become shared). */
+export function shareMediaWithProfile(p: Project, profileId: Id, ids: Id[]): void {
+  const profile = p.profiles[profileId]
+  if (!profile) return
+  for (const id of ids) if (p.media[id] && !profile.mediaIds.includes(id)) profile.mediaIds.push(id)
+}
+
+/**
+ * Copies (or moves) a library / playlists item from the active profile to the end of another
+ * profile's tree. Media its pages use is shared with that profile. Returns the new id.
+ */
+export function sendNodeToProfile(p: Project, scope: TreeScope, id: Id, profileId: Id, mode: 'copy' | 'move'): Id | null {
+  const target = p.profiles[profileId]
+  if (!target || profileId === p.activeProfileId || !idsInProfile(p, scope).has(id)) return null
+  let nodeId: Id | null = id
+  if (mode === 'move') {
+    if (!detachNode(p, scope, id)) return null
+  } else {
+    nodeId = cloneSubtree(p, scope, id)
+    if (!nodeId) return null
+  }
+  target.trees[scope].push(nodeId)
+  if (scope === 'library') shareMediaWithProfile(p, profileId, presentationMediaIds(p, leafIdsUnder(p, nodeId)))
+  return nodeId
 }
