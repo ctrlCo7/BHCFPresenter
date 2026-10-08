@@ -52,10 +52,16 @@ const api: BhcfApi = {
   media: {
     import: (paths) => call(IPC.mediaImport, paths),
     pathForFile: (file) => webUtils.getPathForFile(file),
-    saveGenerated: (name, ext, data) => call(IPC.mediaSaveGenerated, name, ext, data),
+    moveToBackgrounds: (fileNames) => call(IPC.mediaMoveToBackgrounds, fileNames),
     saveThumbnail: (assetId, dataUrl) => call(IPC.mediaSaveThumbnail, assetId, dataUrl),
     listFiles: () => call(IPC.mediaListFiles),
     deleteFiles: (names) => call(IPC.mediaDeleteFiles, names)
+  },
+  library: {
+    list: () => call(IPC.libraryList),
+    chooseDir: () => call(IPC.libraryChooseDir),
+    openDir: () => call(IPC.libraryOpenDir),
+    import: (name) => call(IPC.libraryImport, name)
   },
   displays: {
     list: () => call(IPC.displaysList),

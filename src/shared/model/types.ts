@@ -263,11 +263,15 @@ export function mediaPlaylistAccepts(kind: MediaPlaylistKind, media: MediaKind |
 }
 
 /** A named collection in the Media tab, in display order. */
+/** "pw-backgrounds": the playlist Templates backgrounds go into; its items are hidden from All Media. */
+export type MediaPlaylistRole = 'pw-backgrounds'
+
 export interface MediaPlaylist {
   id: Id
   name: string
   kind: MediaPlaylistKind
   mediaIds: Id[]
+  role?: MediaPlaylistRole
   createdAt: IsoDate
   updatedAt: IsoDate
 }

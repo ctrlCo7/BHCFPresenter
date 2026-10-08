@@ -11,10 +11,11 @@ npm test           # unit tests
 npm run typecheck
 npm run build      # production build into out/
 npm run preview    # run the production build
-npm run dist       # Windows installer: dist/BHCF-Presenter-Setup-<version>.exe
+npm run dist:win   # Windows installer: dist/BHCF-Presenter-Setup-<version>.exe
+npm run dist:mac   # macOS installers (run on a Mac): dist/BHCF-Presenter-<version>-mac-<x64|arm64>.dmg
 ```
 
-To release a new version, raise `version` in package.json, then run `npm run dist`. The installer isn't code-signed, so Windows SmartScreen asks users to click **More info → Run anyway**.
+To release a new version, raise `version` in package.json, commit, then push a tag (`git tag v1.0.1 && git push origin v1.0.1`). The **Build installers** GitHub Action builds the Windows and Mac installers and attaches them to a GitHub Release. The installers aren't code-signed: on Windows, SmartScreen asks users to click **More info → Run anyway**; on a Mac, users right-click the app → **Open** (or run `xattr -cr "/Applications/BHCF Presenter.app"` if macOS says it is damaged).
 
 The npm scripts launch Electron through `scripts/electron-vite.mjs`, which clears `ELECTRON_RUN_AS_NODE` (VS Code terminals set it, and it makes Electron start as plain Node).
 

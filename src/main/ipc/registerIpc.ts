@@ -1,12 +1,13 @@
+import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, shell, type IpcMainInvokeEvent } from 'electron'
-import { IPC, type AppInfo, type DisplayInfo, type IpcResult, type RecentProject, type RemoteSnapshot, type ThemePreference } from '../../shared/ipc'
+import { IPC, type AppInfo, type DisplayInfo, type IpcResult, type LibraryFile, type LibraryListing, type RecentProject, type RemoteSnapshot, type ThemePreference } from '../../shared/ipc'
 import type { LiveState } from '../../shared/live'
-import { MEDIA_EXTENSIONS } from '../../shared/media'
+import { MEDIA_EXTENSIONS, mediaTypeFor, PW_BACKGROUNDS_DIR } from '../../shared/media'
 import type { MediaAsset, Presentation } from '../../shared/model/types'
 import type { BibleService } from '../bible/BibleService'
 import { sanitizeOutputs, sanitizeRemote, type AppConfig } from '../config/AppConfig'
-import { deleteMediaFiles, importMediaFiles, listMediaFiles, saveGeneratedMedia, saveThumbnail } from '../media/MediaImporter'
+import { deleteMediaFiles, importMediaFiles, listMediaFiles, moveToBackgroundsFolder, saveThumbnail } from '../media/MediaImporter'
 import type { OutputManager } from '../output/OutputManager'
 import { exportPresentation, importPresentation } from '../project/PresentationTransfer'
 import { PROJECT_FILE, type ProjectStore } from '../project/ProjectStore'
@@ -208,8 +209,49 @@ export function registerIpc({ store, config, outputs, bibles, remote, getMainWin
     }
     return importMediaFiles(p.media, sources)
   })
-  h(IPC.mediaSaveGenerated, (_e, name: unknown, ext: unknown, data: unknown) =>
-    saveGeneratedMedia(store.requireOpen().media, String(name), String(ext), data as Uint8Array)
+  /* --------------- Backgrounds folder (Templates → My Backgrounds) --------------- */
+
+  const libraryDir = (): string => config.get().backgroundsDir ?? path.join(app.getPath('documents'), 'Backgrounds')
+  const listLibrary = async (): Promise<LibraryListing> => {
+    const dir = libraryDir()
+    let names: string[]
+    try {
+      names = await fs.readdir(dir)
+    } catch {
+      return { dir, exists: false, files: [] }
+    }
+    const files: LibraryFile[] = []
+    for (const name of names) {
+      const type = mediaTypeFor(name)
+      if (!type || type.kind === 'audio') continue
+      const stat = await fs.stat(path.join(dir, name)).catch(() => null)
+      if (stat?.isFile()) files.push({ name, kind: type.kind, sizeBytes: stat.size })
+    }
+    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+    return { dir, exists: true, files }
+  }
+  h(IPC.libraryList, () => listLibrary())
+  h(IPC.libraryChooseDir, async () => {
+    const res = await openDialog({ title: 'Choose your backgrounds folder', defaultPath: libraryDir(), properties: ['openDirectory'] })
+    if (res.canceled || !res.filePaths[0]) return null
+    await config.update({ backgroundsDir: res.filePaths[0] })
+    return listLibrary()
+  })
+  h(IPC.libraryOpenDir, async () => {
+    await fs.mkdir(libraryDir(), { recursive: true })
+    await shell.openPath(libraryDir())
+  })
+  h(IPC.libraryImport, async (_e, name: unknown) => {
+    // Only a bare file name inside the backgrounds folder is accepted.
+    if (typeof name !== 'string' || /[\\/]/.test(name) || name === '..' || name === '.') throw new AppError('INVALID', 'Invalid file name.')
+    const res = await importMediaFiles(store.requireOpen().media, [path.join(libraryDir(), name)], PW_BACKGROUNDS_DIR)
+    const asset = res.imported[0]
+    if (!asset) throw new AppError('IMPORT_FAILED', res.skipped[0]?.reason ?? 'The file could not be copied.')
+    return asset
+  })
+
+  h(IPC.mediaMoveToBackgrounds, (_e, names: unknown) =>
+    moveToBackgroundsFolder(store.requireOpen().media, Array.isArray(names) ? names.filter((n): n is string => typeof n === 'string') : [])
   )
   h(IPC.mediaSaveThumbnail, (_e, assetId: unknown, dataUrl: unknown) => saveThumbnail(store.requireOpen().media, String(assetId), String(dataUrl)))
   h(IPC.mediaListFiles, () => listMediaFiles(store.requireOpen().media))

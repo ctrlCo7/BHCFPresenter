@@ -46,7 +46,10 @@ if (!app.requestSingleInstanceLock()) {
       win.setBackgroundColor(windowBackground())
       if (process.platform !== 'darwin') win.setTitleBarOverlay(titleBarColors())
     })
-    handleMediaProtocol(() => store.current?.media ?? null)
+    handleMediaProtocol(
+      () => store.current?.media ?? null,
+      () => config.get().backgroundsDir ?? path.join(app.getPath('documents'), 'Backgrounds')
+    )
     registerIpc({ store, config, outputs, bibles, remote, getMainWindow, projectsRoot })
 
     const onDisplaysChanged = (): void => {

@@ -270,10 +270,9 @@ export function tickMedia(): void {
   if (!m || !m.playing || m.loop) return
   const d = duration()
   if (d && mediaPosition(m, Date.now(), d) >= d) {
-    const asset = project()?.media[m.mediaId]
-    // Videos hold their last frame paused; audio simply stops.
-    if (asset?.kind === 'audio') mediaStop()
-    else live.set({ media: { ...m, playing: false, anchorPos: d, anchorAt: Date.now() } })
+    // A finished video (or audio) clears its cue: the media fades out to black
+    // (or to the live background / slide underneath, if one is up).
+    mediaStop()
   }
 }
 

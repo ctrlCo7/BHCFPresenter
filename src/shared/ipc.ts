@@ -110,6 +110,20 @@ export interface RemoteSnapshot {
   timers: { id: string; name: string; display: string; running: boolean }[]
 }
 
+/** A video or image in the backgrounds folder on this computer. */
+export interface LibraryFile {
+  name: string
+  kind: 'video' | 'image'
+  sizeBytes: number
+}
+
+export interface LibraryListing {
+  /** Folder being shown */
+  dir: string
+  exists: boolean
+  files: LibraryFile[]
+}
+
 /** Channel names, kept in one place to avoid typos across processes. */
 export const IPC = {
   appInfo: 'app:info',
@@ -135,7 +149,11 @@ export const IPC = {
   presentationImport: 'presentation:import',
   mediaImport: 'media:import',
   mediaSaveThumbnail: 'media:save-thumbnail',
-  mediaSaveGenerated: 'media:save-generated',
+  mediaMoveToBackgrounds: 'media:move-to-backgrounds',
+  libraryList: 'library:list',
+  libraryChooseDir: 'library:choose-dir',
+  libraryOpenDir: 'library:open-dir',
+  libraryImport: 'library:import',
   mediaListFiles: 'media:list-files',
   mediaDeleteFiles: 'media:delete-files',
   displaysList: 'displays:list',
@@ -205,12 +223,21 @@ export interface BhcfApi {
     import(paths?: string[]): Promise<ImportMediaResult>
     /** Resolves the on-disk path of a dropped File (Electron removed File.path). */
     pathForFile(file: File): string
-    /** Saves media created in the app (e.g. a generated motion background) into the project. */
-    saveGenerated(name: string, ext: 'webm' | 'png', data: Uint8Array): Promise<MediaAsset>
+    /** Moves loose media files into media/P&W Backgrounds; resolves old name → new file name for each moved. */
+    moveToBackgrounds(fileNames: string[]): Promise<Record<string, string>>
     /** Stores a JPEG data URL as the asset's poster; returns the thumbnail file name. */
     saveThumbnail(assetId: string, dataUrl: string): Promise<string>
     listFiles(): Promise<MediaFileInfo[]>
     deleteFiles(names: string[]): Promise<{ deleted: number; freedBytes: number }>
+  }
+  /** The backgrounds folder on this computer (default: Documents\\Backgrounds). */
+  library: {
+    list(): Promise<LibraryListing>
+    /** Lets the user pick another folder; resolves the new listing, or null if cancelled. */
+    chooseDir(): Promise<LibraryListing | null>
+    openDir(): Promise<void>
+    /** Copies a file from the folder into the open project. */
+    import(name: string): Promise<MediaAsset>
   }
   displays: {
     list(): Promise<DisplayInfo[]>

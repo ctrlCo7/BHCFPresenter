@@ -1,6 +1,6 @@
-import { mediaUrl } from '@shared/media'
+import { mediaBaseName, mediaUrl, PW_BACKGROUNDS_DIR } from '@shared/media'
 import type { Id, MediaAsset } from '@shared/model/types'
-import { addMediaAssets, mediaSharedWith, mediaUsage, removeMediaFromProfile, updateMediaAsset } from '../../engine/projectOps'
+import { addMediaAssets, addToMediaPlaylist, mediaSharedWith, pwBackgroundsPlaylist, mediaUsage, removeMediaFromProfile, updateMediaAsset } from '../../engine/projectOps'
 import { activeProfile } from '../../engine/tree'
 import { dialogs, errorMessage, toast } from '../../store/overlayStore'
 import { applyChange, requireProject, useProjectStore } from '../../store/projectStore'
@@ -29,10 +29,16 @@ export async function importMedia(paths?: string[]): Promise<MediaAsset[]> {
   }
 }
 
-/** Adds freshly created/imported assets to the project, then reads their size/length and makes posters. */
-export function addNewMedia(assets: MediaAsset[], label: string): Promise<void> {
-  applyChange(label, (d) => addMediaAssets(d, assets))
-  ui.set({ selectedMediaIds: assets.map((m) => m.id) })
+/**
+ * Adds freshly created/imported assets to the project, then reads their size/length and makes posters.
+ * `pwBackgrounds`: Templates backgrounds, which go into the P&W Backgrounds playlist (hidden from All Media).
+ */
+export function addNewMedia(assets: MediaAsset[], label: string, options: { pwBackgrounds?: boolean } = {}): Promise<void> {
+  applyChange(label, (d) => {
+    addMediaAssets(d, assets)
+    if (options.pwBackgrounds) addToMediaPlaylist(d, pwBackgroundsPlaylist(d).id, assets.map((a) => a.id))
+  })
+  if (!options.pwBackgrounds) ui.set({ selectedMediaIds: assets.map((m) => m.id) })
   return Promise.all(assets.map(probeAndStore)).then(() => undefined)
 }
 
@@ -158,7 +164,9 @@ export async function cleanupUnusedMedia(): Promise<void> {
     const files = await window.bhcf.media.listFiles()
     const keep = new Set<string>()
     for (const a of Object.values(p.media)) {
-      keep.add(a.fileName)
+      // Either place: a record can predate the move into P&W Backgrounds (e.g. after undo).
+      keep.add(mediaBaseName(a.fileName))
+      keep.add(`${PW_BACKGROUNDS_DIR}/${mediaBaseName(a.fileName)}`)
       if (a.thumbnail) keep.add(`.thumbs/${a.thumbnail}`)
     }
     const unused = files.filter((f) => !keep.has(f.name))

@@ -13,6 +13,8 @@ export interface AppConfigData {
   remote: RemoteConfig
   /** App colour theme */
   theme: ThemePreference
+  /** Folder of background videos/images shown in Templates → My Backgrounds; null = Documents\\Backgrounds */
+  backgroundsDir: string | null
 }
 
 const MAX_RECENT = 12
@@ -28,7 +30,8 @@ function defaults(): AppConfigData {
     window: { width: 1600, height: 960, maximized: true },
     outputs: defaultOutputs(),
     remote: { enabled: false, port: 5719, pin: randomPin() },
-    theme: 'system'
+    theme: 'system',
+    backgroundsDir: null
   }
 }
 
@@ -89,7 +92,8 @@ export class AppConfig {
         window: raw.window && typeof raw.window.width === 'number' ? { ...d.window, ...raw.window } : d.window,
         outputs: raw.outputs ? sanitizeOutputs(raw.outputs) : d.outputs,
         remote: sanitizeRemote(raw.remote, d.remote),
-        theme: raw.theme === 'light' || raw.theme === 'dark' || raw.theme === 'system' ? raw.theme : d.theme
+        theme: raw.theme === 'light' || raw.theme === 'dark' || raw.theme === 'system' ? raw.theme : d.theme,
+        backgroundsDir: typeof raw.backgroundsDir === 'string' && raw.backgroundsDir ? raw.backgroundsDir : null
       }
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') console.warn('[config] unreadable, using defaults:', err)

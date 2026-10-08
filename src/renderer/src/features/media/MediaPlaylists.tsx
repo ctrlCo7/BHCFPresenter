@@ -3,7 +3,7 @@
  * Backgrounds, Videos, Audio and any the user adds).
  * Selecting one shows only its items in the grid; media dragged from the grid drops onto a row.
  */
-import { Film, Image as ImageIcon, LayoutGrid, Music, Pencil, Play, Plus, Trash2, Wallpaper } from 'lucide-react'
+import { Film, Image as ImageIcon, LayoutGrid, Music, Pencil, Play, Plus, Sparkles, Trash2, Wallpaper } from 'lucide-react'
 import { useState, type ReactElement } from 'react'
 import { MEDIA_PLAYLIST_KINDS, mediaPlaylistAccepts, type Id, type MediaPlaylistKind, type Project } from '@shared/model/types'
 import { currentDrag, endDrag } from '../../services/dragState'
@@ -12,6 +12,7 @@ import { ui, useUiStore } from '../../store/uiStore'
 import { playMedia } from '../../live/liveActions'
 import { addToMediaPlaylistWithToast, deleteMediaPlaylistAction, KIND_LABEL, newMediaPlaylist, renameMediaPlaylistAction } from './mediaPlaylistActions'
 import { activeProfile } from '../../engine/tree'
+import { hiddenFromAllMedia } from '../../engine/projectOps'
 
 export const PLAYLIST_ICON: Record<MediaPlaylistKind, typeof Film> = { image: ImageIcon, background: Wallpaper, video: Film, audio: Music }
 
@@ -26,6 +27,7 @@ export function MediaPlaylists({ project }: { project: Project }): ReactElement 
   const activeId = useUiStore((s) => s.mediaPlaylistId)
   const [dropId, setDropId] = useState<Id | null>(null)
   const active = activeId && activeProfile(project).mediaPlaylistOrder.includes(activeId) ? activeId : null
+  const hidden = hiddenFromAllMedia(project)
 
   /** Media ids being dragged that this playlist accepts. */
   const acceptedIds = (id: Id): Id[] => {
@@ -59,7 +61,7 @@ export function MediaPlaylists({ project }: { project: Project }): ReactElement 
       <div className={`media-list-row${active ? '' : ' selected'}`} onClick={() => ui.set({ mediaPlaylistId: null })}>
         <LayoutGrid size={14} className="media-list-icon" />
         <span className="media-list-name">All Media</span>
-        <span className="media-list-count">{activeProfile(project).mediaIds.length}</span>
+        <span className="media-list-count">{activeProfile(project).mediaIds.filter((id) => !hidden.has(id)).length}</span>
       </div>
       <div className="media-lists-head">
         <span>Playlists</span>
@@ -70,12 +72,12 @@ export function MediaPlaylists({ project }: { project: Project }): ReactElement 
       {activeProfile(project).mediaPlaylistOrder.map((id) => {
         const pl = project.mediaPlaylists[id]
         if (!pl) return null
-        const Icon = PLAYLIST_ICON[pl.kind]
+        const Icon = pl.role === 'pw-backgrounds' ? Sparkles : PLAYLIST_ICON[pl.kind]
         return (
           <div
             key={id}
             className={`media-list-row${active === id ? ' selected' : ''}${dropId === id ? ' drop-inside' : ''}`}
-            title={`${KIND_LABEL[pl.kind]} playlist`}
+            title={pl.role === 'pw-backgrounds' ? 'Backgrounds from Templates (hidden from All Media)' : `${KIND_LABEL[pl.kind]} playlist`}
             onClick={() => ui.set({ mediaPlaylistId: id })}
             onContextMenu={(e) => onContext(e, id)}
             onDragOver={(e) => {

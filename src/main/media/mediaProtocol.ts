@@ -8,7 +8,7 @@ import { createReadStream, promises as fs } from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import { protocol } from 'electron'
-import { MEDIA_PROTOCOL, mediaTypeFor } from '../../shared/media'
+import { MEDIA_PROTOCOL, mediaTypeFor, PW_BACKGROUNDS_DIR } from '../../shared/media'
 import { isInside } from '../util/fsx'
 
 /** Must run before app 'ready'. */
@@ -39,29 +39,37 @@ function parseRange(header: string, size: number): { start: number; end: number 
   return { start, end }
 }
 
-export function handleMediaProtocol(getMediaDir: () => string | null): void {
+/**
+ * Hosts: "project" = the open project's media folder; "library" = the backgrounds folder on this
+ * computer (previews in Templates → My Backgrounds, streamed without copying).
+ */
+export function handleMediaProtocol(getMediaDir: () => string | null, getLibraryDir: () => string | null): void {
   protocol.handle(MEDIA_PROTOCOL, async (request) => {
-    const mediaDir = getMediaDir()
-    if (!mediaDir) return new Response('No project open', { status: 404 })
-
     const url = new URL(request.url)
+    const mediaDir = url.host === 'library' ? getLibraryDir() : getMediaDir()
+    if (!mediaDir) return new Response('No folder', { status: 404 })
+
     let fileName: string
     try {
       fileName = decodeURIComponent(url.pathname.replace(/^\/+/, ''))
     } catch {
       return new Response('Bad request', { status: 400 })
     }
-    const filePath = path.resolve(mediaDir, fileName)
-    if (url.host !== 'project' || !isInside(mediaDir, filePath)) return new Response('Forbidden', { status: 403 })
+    let filePath = path.resolve(mediaDir, fileName)
+    if ((url.host !== 'project' && url.host !== 'library') || !isInside(mediaDir, filePath)) return new Response('Forbidden', { status: 403 })
 
-    let size: number
-    try {
-      const stat = await fs.stat(filePath)
-      if (!stat.isFile()) return new Response('Not found', { status: 404 })
-      size = stat.size
-    } catch {
-      return new Response('Not found', { status: 404 })
+    const statFile = (p: string): Promise<number | null> => fs.stat(p).then((st) => (st.isFile() ? st.size : null), () => null)
+    let size = await statFile(filePath)
+    if (size === null && url.host === 'project') {
+      // Templates backgrounds moved into "P&W Backgrounds/" (or a record from before the move, e.g. after undo).
+      const base = path.basename(filePath)
+      const alt = fileName.includes('/') ? path.resolve(mediaDir, base) : path.resolve(mediaDir, PW_BACKGROUNDS_DIR, base)
+      if (isInside(mediaDir, alt)) {
+        size = await statFile(alt)
+        if (size !== null) filePath = alt
+      }
     }
+    if (size === null) return new Response('Not found', { status: 404 })
 
     const contentType = mediaTypeFor(fileName)?.mimeType ?? 'application/octet-stream'
     // CORS lets the renderer draw video frames to a canvas (poster thumbnails) without tainting it.

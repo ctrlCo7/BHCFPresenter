@@ -5,6 +5,7 @@
  * fields are filled with defaults, invalid items are dropped, and dangling tree / playlist
  * references are repaired. Every repair is reported so the UI can tell the user.
  */
+import { isValidMediaFileName } from '../media'
 import { createMediaPlaylist, createProfile, DEFAULT_PROFILE_NAMES, defaultBackground, defaultMediaPlaylists, defaultProjectSettings, defaultTextStyle, defaultTransition, nowIso } from './factory'
 import {
   PROJECT_FORMAT,
@@ -314,8 +315,9 @@ function normPresentation(id: Id, v: unknown, repairs: string[]): Presentation |
 
 function normMedia(id: Id, v: unknown): MediaAsset | null {
   if (!isObj(v) || typeof v.fileName !== 'string' || v.fileName.length === 0) return null
-  // fileName must be a bare name inside the media directory — never a path.
-  if (/[\\/]/.test(v.fileName) || v.fileName === '..' || v.fileName === '.') return null
+  // fileName must be a bare name inside the media directory — never a path — or one inside
+  // the single allowed subfolder, "P&W Backgrounds/".
+  if (!isValidMediaFileName(v.fileName)) return null
   const kind = oneOf(v.kind, ['image', 'video', 'audio'] as const, 'image')
   const nullableNum = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) ? x : null)
   return {
@@ -368,6 +370,7 @@ function normMediaPlaylist(id: Id, v: unknown, media: Record<Id, MediaAsset>): M
     kind,
     // Only existing media the playlist accepts, each once.
     mediaIds: [...new Set(ids.filter((m): m is string => typeof m === 'string' && mediaPlaylistAccepts(kind, media[m]?.kind)))],
+    ...(v.role === 'pw-backgrounds' ? { role: 'pw-backgrounds' as const } : {}),
     createdAt: str(v.createdAt, now),
     updatedAt: str(v.updatedAt, now)
   }

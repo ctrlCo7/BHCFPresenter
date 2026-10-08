@@ -1,7 +1,7 @@
 {
   "name": "bhcf-presenter",
   "productName": "BHCF Presenter",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "description": "Live presentation and media software for churches, conferences and events.",
   "author": "John Carl Sarbida",
   "license": "UNLICENSED",
@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dist": "npm run build && electron-builder --win --x64"
+    "dist": "npm run build && electron-builder --win --x64",
+    "dist:win": "npm run build && electron-builder --win --x64",
+    "dist:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
     "@fontsource-variable/dancing-script": "^5.3.0",
@@ -91,6 +93,27 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "BHCF Presenter"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "resources/icon.png",
+      "identity": "-",
+      "artifactName": "BHCF-Presenter-${version}-mac-${arch}.${ext}",
+      "extendInfo": {
+        "NSDocumentsFolderUsageDescription": "BHCF Presenter keeps your projects and background videos in your Documents folder."
+      }
+    },
+    "dmg": {
+      "title": "BHCF Presenter ${version}"
     }
   }
 }

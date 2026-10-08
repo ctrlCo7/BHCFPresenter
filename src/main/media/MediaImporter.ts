@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import type { ImportMediaResult, MediaFileInfo } from '../../shared/ipc'
-import { mediaTypeFor } from '../../shared/media'
+import { isValidMediaFileName, mediaTypeFor, PW_BACKGROUNDS_DIR } from '../../shared/media'
 import type { MediaAsset } from '../../shared/model/types'
 import { AppError, isInside, sanitizeFileName } from '../util/fsx'
 
@@ -10,8 +10,9 @@ import { AppError, isInside, sanitizeFileName } from '../util/fsx'
  * Copies media files into the project's media folder so projects stay self-contained
  * and portable. Dimensions/duration are probed later by the renderer, which has the decoders.
  */
-export async function importMediaFiles(mediaDir: string, sourcePaths: string[]): Promise<ImportMediaResult> {
-  await fs.mkdir(mediaDir, { recursive: true })
+export async function importMediaFiles(mediaDir: string, sourcePaths: string[], subfolder: typeof PW_BACKGROUNDS_DIR | null = null): Promise<ImportMediaResult> {
+  const destDir = subfolder ? path.join(mediaDir, subfolder) : mediaDir
+  await fs.mkdir(destDir, { recursive: true })
   const imported: MediaAsset[] = []
   const skipped: ImportMediaResult['skipped'] = []
 
@@ -31,9 +32,10 @@ export async function importMediaFiles(mediaDir: string, sourcePaths: string[]):
       const ext = path.extname(originalName).toLowerCase()
       const base = sanitizeFileName(path.basename(originalName, path.extname(originalName)), 'media').slice(0, 60)
       const id = randomUUID()
-      const fileName = `${base}-${id.slice(0, 8)}${ext}`
+      const bare = `${base}-${id.slice(0, 8)}${ext}`
+      const fileName = subfolder ? `${subfolder}/${bare}` : bare
       // COPYFILE_EXCL: never overwrite an existing media file.
-      await fs.copyFile(source, path.join(mediaDir, fileName), fs.constants.COPYFILE_EXCL)
+      await fs.copyFile(source, path.join(destDir, bare), fs.constants.COPYFILE_EXCL)
       imported.push({
         id,
         name: path.basename(originalName, path.extname(originalName)),
@@ -55,37 +57,6 @@ export async function importMediaFiles(mediaDir: string, sourcePaths: string[]):
   return { imported, skipped }
 }
 
-const MAX_GENERATED_BYTES = 300 * 1024 * 1024
-
-/** Writes bytes produced inside the app (generated backgrounds) into the media folder. */
-export async function saveGeneratedMedia(mediaDir: string, name: string, ext: string, data: Uint8Array): Promise<MediaAsset> {
-  if (ext !== 'webm' && ext !== 'png') throw new AppError('INVALID_TYPE', 'Unsupported generated media type.')
-  if (!(data instanceof Uint8Array) || data.byteLength === 0 || data.byteLength > MAX_GENERATED_BYTES) {
-    throw new AppError('INVALID_DATA', 'The generated media is empty or too large.')
-  }
-  await fs.mkdir(mediaDir, { recursive: true })
-  const type = mediaTypeFor(`x.${ext}`)
-  if (!type) throw new AppError('INVALID_TYPE', 'Unsupported generated media type.')
-  const id = randomUUID()
-  const cleanName = sanitizeFileName(name, 'background').slice(0, 60)
-  const fileName = `${cleanName}-${id.slice(0, 8)}.${ext}`
-  await fs.writeFile(path.join(mediaDir, fileName), data, { flag: 'wx' })
-  return {
-    id,
-    name: cleanName,
-    kind: type.kind,
-    fileName,
-    originalName: fileName,
-    mimeType: type.mimeType,
-    sizeBytes: data.byteLength,
-    width: null,
-    height: null,
-    durationSec: null,
-    thumbnail: null,
-    importedAt: new Date().toISOString()
-  }
-}
-
 export const THUMBS_DIR = '.thumbs'
 const MAX_THUMB_BYTES = 2 * 1024 * 1024
 
@@ -102,7 +73,7 @@ export async function saveThumbnail(mediaDir: string, assetId: string, dataUrl: 
   return name
 }
 
-/** Files in media/ (thumbnails reported as ".thumbs/<name>"). */
+/** Files in media/ (thumbnails reported as ".thumbs/<name>", Templates backgrounds as "P&W Backgrounds/<name>"). */
 export async function listMediaFiles(mediaDir: string): Promise<MediaFileInfo[]> {
   const out: MediaFileInfo[] = []
   const scan = async (dir: string, prefix: string): Promise<void> => {
@@ -114,21 +85,21 @@ export async function listMediaFiles(mediaDir: string): Promise<MediaFileInfo[]>
     }
     for (const e of entries) {
       if (e.isFile() && !e.name.startsWith('.')) out.push({ name: prefix + e.name, sizeBytes: (await fs.stat(path.join(dir, e.name))).size })
-      else if (e.isDirectory() && e.name === THUMBS_DIR && !prefix) await scan(path.join(dir, e.name), `${THUMBS_DIR}/`)
+      else if (e.isDirectory() && (e.name === THUMBS_DIR || e.name === PW_BACKGROUNDS_DIR) && !prefix) await scan(path.join(dir, e.name), `${e.name}/`)
     }
   }
   await scan(mediaDir, '')
   return out
 }
 
-/** Deletes the named files from media/ (or media/.thumbs/). Names are validated strictly. */
+/** Deletes the named files from media/ (or media/.thumbs/, media/P&W Backgrounds/). Names are validated strictly. */
 export async function deleteMediaFiles(mediaDir: string, names: string[]): Promise<{ deleted: number; freedBytes: number }> {
   let deleted = 0
   let freedBytes = 0
   for (const name of names) {
-    const m = /^(\.thumbs\/)?([^/\\]+)$/.exec(name)
+    const m = /^(\.thumbs\/|P&W Backgrounds\/)?([^/\\]+)$/.exec(name)
     if (!m || m[2] === '..' || (m[2] as string).startsWith('.')) continue
-    const file = path.join(mediaDir, m[1] ? THUMBS_DIR : '', m[2] as string)
+    const file = path.join(mediaDir, m[1] ? m[1].slice(0, -1) : '', m[2] as string)
     if (!isInside(mediaDir, file)) continue
     try {
       const stat = await fs.stat(file)
@@ -141,4 +112,24 @@ export async function deleteMediaFiles(mediaDir: string, names: string[]): Promi
     }
   }
   return { deleted, freedBytes }
+}
+
+/**
+ * Moves loose files of media/ into media/P&W Backgrounds (Templates backgrounds made before the
+ * folder existed). Returns each moved name's new file name; one already in the folder counts as moved.
+ */
+export async function moveToBackgroundsFolder(mediaDir: string, fileNames: string[]): Promise<Record<string, string>> {
+  const moved: Record<string, string> = {}
+  await fs.mkdir(path.join(mediaDir, PW_BACKGROUNDS_DIR), { recursive: true })
+  for (const name of fileNames) {
+    if (!isValidMediaFileName(name) || name.includes('/') || name.startsWith('.')) continue
+    const target = path.join(mediaDir, PW_BACKGROUNDS_DIR, name)
+    try {
+      await fs.rename(path.join(mediaDir, name), target)
+      moved[name] = `${PW_BACKGROUNDS_DIR}/${name}`
+    } catch {
+      if (await fs.stat(target).then((st) => st.isFile(), () => false)) moved[name] = `${PW_BACKGROUNDS_DIR}/${name}`
+    }
+  }
+  return moved
 }

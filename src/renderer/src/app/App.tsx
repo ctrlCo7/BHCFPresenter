@@ -6,6 +6,7 @@ import { ToastHost } from '../components/ui/ToastHost'
 import { EditWorkspace } from '../features/editor/EditWorkspace'
 import { LiveWorkspace } from '../features/live/LiveWorkspace'
 import { ensureVideoThumbnails, importMedia } from '../features/media/mediaActions'
+import { organizePwBackgrounds } from '../features/media/pwBackgrounds'
 import { StatusBar } from '../features/shell/StatusBar'
 import { TitleBar } from '../features/shell/TitleBar'
 import { Toolbar } from '../features/shell/Toolbar'
@@ -70,10 +71,14 @@ export function App(): ReactElement {
     }
   }, [])
 
-  // A newly opened project starts with nothing on screen and gets missing video posters.
+  // A newly opened project starts with nothing on screen, gets missing video posters and files
+  // older Templates backgrounds into P&W Backgrounds.
   useEffect(() => {
     live.set({ cursor: null, last: null, heldBackground: null, media: null, mediaContext: null, overlays: [], logo: false, black: false, timers: {} })
-    if (projectId) ensureVideoThumbnails()
+    if (projectId) {
+      ensureVideoThumbnails()
+      void organizePwBackgrounds()
+    }
   }, [projectId])
 
   return (

@@ -28,6 +28,7 @@ import { playBackground, playMedia } from '../../live/liveActions'
 import { useLiveStore } from '../../live/liveStore'
 import { deleteMedia, formatBytes, formatDuration, importMedia, renameMedia, setAsLogo } from './mediaActions'
 import { activeProfile } from '../../engine/tree'
+import { hiddenFromAllMedia } from '../../engine/projectOps'
 import './media.css'
 
 const KIND_ICON = { image: ImageIcon, video: Film, audio: Music } as const
@@ -135,12 +136,15 @@ export function MediaBin(): ReactElement {
     const matches = (m: MediaAsset): boolean => !q || fold(m.name).includes(q)
     // A playlist shows its own items in playlist order; its kind replaces the type filter.
     if (playlist) return playlist.mediaIds.map((id) => project.media[id]).filter((m): m is MediaAsset => !!m && matches(m))
+    // P&W Backgrounds items show only when that playlist is opened.
+    const hidden = hiddenFromAllMedia(project)
     return profileMedia
+      .filter((id) => !hidden.has(id))
       .map((id) => project.media[id])
       .filter((m): m is MediaAsset => !!m)
       .filter((m) => (filter === 'all' || m.kind === filter) && matches(m))
       .sort((a, b) => b.importedAt.localeCompare(a.importedAt) || a.name.localeCompare(b.name))
-  }, [project.media, profileMedia, playlist, filter, query])
+  }, [project, profileMedia, playlist, filter, query])
 
   const onPlay = useStableCallback((asset: MediaAsset) => {
     // From a playlist, Next / Previous continue through it.
@@ -337,7 +341,7 @@ export function MediaBin(): ReactElement {
           </div>
         )}
         <input className="input media-search" placeholder="Filter…" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <button className="btn tpl-open" onClick={() => openTemplates('backgrounds')} title="Free motion backgrounds made by the app">
+        <button className="btn tpl-open" onClick={() => openTemplates('backgrounds')} title="Background videos from your backgrounds folder">
           <Sparkles size={13} /> Templates
         </button>
         <IconButton icon={<Upload size={14} />} title={`Import media… (${shortcutLabel('file.importMedia') ?? ''})`} onClick={() => void importHere()} />
@@ -381,7 +385,7 @@ export function MediaBin(): ReactElement {
               </EmptyState>
             ) : (
               <EmptyState icon={<FolderInput size={30} strokeWidth={1.3} />} title={profileMedia.length ? 'No matching media' : 'No media in this profile yet'}>
-                <p>Drop images, videos or audio here, or click Import. Hover a video and click Background to loop it behind your lyrics — or get free motion backgrounds from Templates.</p>
+                <p>Drop images, videos or audio here, or click Import. Hover a video and click Background to loop it behind your lyrics — or pick one from Templates › My Backgrounds.</p>
                 <button className="btn primary" onClick={() => openTemplates('backgrounds')}>
                   <Sparkles size={14} /> Background Templates
                 </button>

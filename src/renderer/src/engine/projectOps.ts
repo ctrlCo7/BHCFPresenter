@@ -417,6 +417,29 @@ export function addMediaPlaylist(p: Project, name: string, kind: MediaPlaylistKi
   return pl
 }
 
+export const PW_PLAYLIST_NAME = 'P&W Backgrounds'
+
+/** The profile's "P&W Backgrounds" playlist (Templates backgrounds); created after Backgrounds when missing. */
+export function pwBackgroundsPlaylist(p: Project, profile: Profile = activeProfile(p)): MediaPlaylist {
+  const found = profile.mediaPlaylistOrder.map((id) => p.mediaPlaylists[id]).find((pl) => pl?.role === 'pw-backgrounds')
+  if (found) return found
+  const pl: MediaPlaylist = { ...createMediaPlaylist(PW_PLAYLIST_NAME, 'background'), role: 'pw-backgrounds' }
+  p.mediaPlaylists[pl.id] = pl
+  const bg = profile.mediaPlaylistOrder.findIndex((id) => p.mediaPlaylists[id]?.kind === 'background')
+  profile.mediaPlaylistOrder.splice(bg + 1, 0, pl.id)
+  return p.mediaPlaylists[pl.id] as MediaPlaylist
+}
+
+/** Media that only shows when its playlist is opened: the items of the profile's P&W Backgrounds playlist. */
+export function hiddenFromAllMedia(p: Project, profile: Profile = activeProfile(p)): Set<Id> {
+  const hidden = new Set<Id>()
+  for (const id of profile.mediaPlaylistOrder) {
+    const pl = p.mediaPlaylists[id]
+    if (pl?.role === 'pw-backgrounds') for (const m of pl.mediaIds) hidden.add(m)
+  }
+  return hidden
+}
+
 export function deleteMediaPlaylist(p: Project, id: Id): void {
   delete p.mediaPlaylists[id]
   for (const profile of Object.values(p.profiles)) profile.mediaPlaylistOrder = profile.mediaPlaylistOrder.filter((x) => x !== id)
