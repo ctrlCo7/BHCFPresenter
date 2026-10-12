@@ -31,7 +31,10 @@ export function compareVersions(a: string, b: string): number {
 
 /** Release notes as plain text (GitHub gives HTML to the updater, Markdown to the API). */
 export function notesText(notes: unknown): string | undefined {
-  const raw = Array.isArray(notes) ? notes.map((n: { note?: string | null }) => n.note ?? '').join('\n') : typeof notes === 'string' ? notes : ''
+  let raw = Array.isArray(notes) ? notes.map((n: { note?: string | null }) => n.note ?? '').join('\n') : typeof notes === 'string' ? notes : ''
+  // Markdown (macOS reads the release body as written): a single line break inside a bullet or
+  // paragraph only wraps the text, so join it. HTML (Windows) has already been joined by GitHub.
+  if (!/<[a-z][^>]*>/i.test(raw)) raw = raw.replace(/\r\n?/g, '\n').replace(/([^\n])\n(?![ \t]*(?:\n|[-*]\s|$))[ \t]*/g, '$1 ')
   const text = raw
     .replace(/<\/(p|li|h\d)>|<br\s*\/?>/gi, '\n')
     .replace(/<li[^>]*>/gi, '• ')

@@ -92,6 +92,8 @@ describe('update release notes', () => {
     const { notesText } = await import('./updates')
     expect(notesText('<ul>\n<li>Timer screens &amp; loops</li>\n<li>Song import</li>\n</ul>')).toBe('• Timer screens & loops\n• Song import')
     expect(notesText('- One\n- Two')).toBe('• One\n• Two')
+    // Mac: the release body as written, with lines wrapped mid-sentence.
+    expect(notesText('- Updates now ask first: a window shows\n  what changed\n- Update now downloads\n\nThanks')).toBe('• Updates now ask first: a window shows what changed\n• Update now downloads\n\nThanks')
     expect(notesText('')).toBeUndefined()
     expect(notesText(null)).toBeUndefined()
   })
