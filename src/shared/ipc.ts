@@ -5,6 +5,8 @@
  * plain Error with a user-presentable message, so renderers can use ordinary try/catch.
  */
 import type { BibleBook, BibleInfo, Verse } from './bible'
+import type { SongFile } from './songImport'
+import type { UpdateStatus } from './updates'
 import type { LiveState, OutputConfig, OutputStatus } from './live'
 import type { MediaAsset, Presentation, Project } from './model/types'
 
@@ -173,6 +175,12 @@ export const IPC = {
   bibleChapter: 'bible:chapter',
   bibleSearch: 'bible:search',
   bibleImport: 'bible:import',
+  songsImport: 'songs:import',
+  updatesGet: 'updates:get',
+  updatesCheck: 'updates:check',
+  updatesInstall: 'updates:install',
+  updatesDownload: 'updates:download',
+  updatesStatus: 'updates:status',
   remoteGetStatus: 'remote:get-status',
   remoteSetConfig: 'remote:set-config',
   remoteSnapshot: 'remote:snapshot',
@@ -261,6 +269,20 @@ export interface BhcfApi {
     chapter(bibleId: string, book: number, chapter: number): Promise<Verse[]>
     search(bibleId: string, query: string, limit?: number): Promise<Verse[]>
     import(): Promise<BibleInfo | null>
+  }
+  updates: {
+    status(): Promise<UpdateStatus>
+    /** Checks GitHub now and reports problems (background checks run by themselves). */
+    check(): Promise<UpdateStatus>
+    /** Windows: restarts and installs the downloaded update. */
+    install(): Promise<void>
+    /** macOS: opens the new version's download. */
+    download(): Promise<void>
+    onStatus(handler: (s: UpdateStatus) => void): Unsubscribe
+  }
+  songs: {
+    /** Asks for song files and reads them; null when cancelled. */
+    importFiles(): Promise<{ files: SongFile[]; errors: string[] } | null>
   }
   remote: {
     status(): Promise<RemoteStatus>

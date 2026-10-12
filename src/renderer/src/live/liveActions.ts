@@ -39,7 +39,7 @@ export function take(presentationId: Id, slideId: Id, context?: PlaylistContext 
     ctx = entry?.kind === 'presentation' && entry.presentationId === presentationId && sel ? sel : null
   }
   const cursor: LiveCursor = { presentationId, slideId, context: ctx }
-  live.set((s) => ({ cursor, last: cursor, takeId: s.takeId + 1, logo: false, heldBackground: null }))
+  live.set((s) => ({ cursor, last: cursor, takeId: s.takeId + 1, takenAt: Date.now(), logo: false, heldBackground: null, overlays: withoutScreens(s.overlays) }))
   syncUi(cursor)
 }
 
@@ -139,10 +139,15 @@ export const prevSlide = (): void => step(-1)
 export function clearSlide(): void {
   const p = project()
   const s = live.get()
-  if (!s.cursor || !p) return
+  // A timer screen counts as the slide here.
+  const overlays = withoutScreens(s.overlays)
+  if (!s.cursor || !p) {
+    if (overlays !== s.overlays) live.set({ overlays })
+    return
+  }
   const pres = p.presentations[s.cursor.presentationId]
   const slide = pres?.slides.find((x) => x.id === s.cursor?.slideId)
-  live.set({ cursor: null, heldBackground: pres && slide ? resolveBackground(p, pres, slide) : null })
+  live.set({ cursor: null, heldBackground: pres && slide ? resolveBackground(p, pres, slide) : null, overlays })
 }
 
 export function clearAll(): void {
@@ -161,7 +166,7 @@ export function toggleLogo(): void {
       return
     }
   }
-  live.set((s) => ({ logo: !s.logo }))
+  live.set((s) => (s.logo ? { logo: false } : { logo: true, overlays: withoutScreens(s.overlays) }))
 }
 
 /* ------------------------------ Media ------------------------------ */
@@ -185,7 +190,7 @@ export function playMedia(mediaId: Id, context: PlaylistContext | null = null): 
     },
     mediaContext: context,
     // A video/image cue replaces the slide on screen; audio plays underneath it.
-    ...(asset.kind === 'audio' ? {} : { cursor: null, heldBackground: null, logo: false })
+    ...(asset.kind === 'audio' ? {} : { cursor: null, heldBackground: null, logo: false, overlays: withoutScreens(s.overlays) })
   }))
 }
 
@@ -278,8 +283,30 @@ export function tickMedia(): void {
 
 /* ----------------------------- Overlays ----------------------------- */
 
+/** Active overlays minus full screens (timer screens), which a slide, media cue or logo replaces. */
+function withoutScreens(overlays: Id[]): Id[] {
+  const p = project()
+  return p && overlays.some((id) => p.overlays[id]?.fullScreen) ? overlays.filter((id) => !p.overlays[id]?.fullScreen) : overlays
+}
+
 export function toggleOverlay(id: Id): void {
-  live.set((s) => ({ overlays: s.overlays.includes(id) ? s.overlays.filter((x) => x !== id) : [...s.overlays, id] }))
+  const p = project()
+  live.set((s) => {
+    if (s.overlays.includes(id)) return { overlays: s.overlays.filter((x) => x !== id) }
+    if (!p?.overlays[id]?.fullScreen) return { overlays: [...s.overlays, id] }
+    // A full screen replaces whatever is showing (like Clear: the slide's background stays,
+    // and so does a looping background video), so it never sits on top of lyrics or media.
+    const pres = s.cursor ? p.presentations[s.cursor.presentationId] : undefined
+    const slide = pres?.slides.find((x) => x.id === s.cursor?.slideId)
+    const visualMedia = s.media && p.media[s.media.mediaId]?.kind !== 'audio'
+    return {
+      overlays: [...withoutScreens(s.overlays), id],
+      cursor: null,
+      heldBackground: pres && slide ? resolveBackground(p, pres, slide) : s.heldBackground,
+      logo: false,
+      ...(visualMedia ? { media: null, mediaContext: null } : {})
+    }
+  })
 }
 
 /* ------------------------------ Timers ------------------------------ */

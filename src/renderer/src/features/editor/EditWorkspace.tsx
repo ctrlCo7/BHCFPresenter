@@ -134,7 +134,9 @@ export function EditWorkspace(): ReactElement {
   }
 
   const pres = target.kind === 'slide' ? project.presentations[target.presentationId] : undefined
-  const background = target.kind === 'overlay' ? null : (slide.background ?? pres?.background ?? project.settings.defaultBackground)
+  const overlay = target.kind === 'overlay' ? project.overlays[target.overlayId] : undefined
+  // Overlays are transparent; full screens (timer screens) may have a background of their own.
+  const background = overlay ? (overlay.fullScreen && slide.background?.type !== 'none' ? slide.background : null) : (slide.background ?? pres?.background ?? project.settings.defaultBackground)
   const selectedEls = slide.elements.filter((e) => selectedIds.includes(e.id))
   const has = selectedIds.length > 0
 
@@ -152,7 +154,7 @@ export function EditWorkspace(): ReactElement {
 
       <div className="edit-center">
         <div className="edit-toolbar" role="toolbar" aria-label="Editor tools">
-          <span className="edit-title">{target.kind === 'overlay' ? `Overlay · ${project.overlays[target.overlayId]?.name ?? ''}` : (pres?.name ?? '')}</span>
+          <span className="edit-title">{target.kind === 'overlay' ? `${overlay?.fullScreen ? 'Screen' : 'Overlay'} · ${overlay?.name ?? ''}` : (pres?.name ?? '')}</span>
           <div className="tb-group">
             <button className="btn ghost" onClick={addText} title="Add text box">
               <Type size={14} /> Text
@@ -210,7 +212,7 @@ export function EditWorkspace(): ReactElement {
             ])
           }}
         >
-          <EditorCanvas slide={slide} background={background} canvas={project.settings.canvas} media={project.media} transparent={target.kind === 'overlay'} />
+          <EditorCanvas slide={slide} background={background} canvas={project.settings.canvas} media={project.media} transparent={!!overlay && !background} />
         </div>
       </div>
 

@@ -165,6 +165,8 @@ export interface Slide {
   transition: TransitionSpec | null
   /** Disabled slides are skipped by next/previous during live */
   enabled: boolean
+  /** Seconds before going to the next slide during live; 0 = never; missing = presentation's setting */
+  advanceAfterSec?: number
 }
 
 export type PresentationKind = 'standard' | 'song' | 'scripture'
@@ -199,6 +201,10 @@ export interface Presentation {
   meta: Record<string, string>
   /** Lyrics source for kind === 'song' */
   song: SongData | null
+  /** Auto-advance: seconds each slide stays up during live (slides may override); missing = off */
+  autoAdvanceSec?: number
+  /** After the last slide, auto-advance starts again from the first (announcement loops) */
+  loop?: boolean
   createdAt: IsoDate
   updatedAt: IsoDate
 }
@@ -211,8 +217,13 @@ export interface Presentation {
 export interface Overlay {
   id: Id
   name: string
-  /** Edited with the slide editor; its background is ignored (always transparent) */
+  /** Edited with the slide editor; its background is ignored (transparent) unless `fullScreen` */
   slide: Slide
+  /**
+   * A full screen (e.g. a countdown) rather than a layer: showing it takes the slide and media
+   * off screen, and taking a slide, media or the logo hides it, so the two never overlap.
+   */
+  fullScreen?: boolean
 }
 
 export type TimerKind = 'countdown' | 'countup' | 'clock' | 'countdown-to-time'

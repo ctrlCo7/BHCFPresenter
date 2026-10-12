@@ -21,6 +21,8 @@ import { applyCurrentSlideToAll, applyTextStyleToAll, editElements, editSlide } 
 import { useUiStore } from '../../store/uiStore'
 import { useProjectStore } from '../../store/projectStore'
 import { profileMediaRecord } from '../../engine/tree'
+import { clampSeconds } from '@shared/model/normalize'
+import { AutoAdvanceRows } from '../presentation/AutoAdvanceRows'
 
 const WEIGHTS = [
   { value: '300', label: 'Light' },
@@ -321,20 +323,51 @@ export function ElementInspector({ elements, media }: { elements: SlideElement[]
 export function SlideInspector({ project, target, slide }: { project: Project; target: EditTarget; slide: Slide }): ReactElement {
   if (target.kind === 'overlay') {
     const overlay = project.overlays[target.overlayId]
+    const editOverlay = (label: string, fn: (o: NonNullable<typeof overlay>) => void, coalesce?: string): void => {
+      applyChange(
+        label,
+        (d) => {
+          const o = d.overlays[target.overlayId]
+          if (o) fn(o)
+        },
+        { coalesce }
+      )
+    }
     return (
-      <Section title="Overlay">
-        <Row label="Name">
-          <TextInput value={overlay?.name ?? ''} onChange={(name) => {
-              if (!name.trim()) return
-              applyChange('Rename overlay', (d) => {
-                const o = d.overlays[target.overlayId]
-                if (o) o.name = name.trim()
-              })
-            }}
-          />
-        </Row>
-        <div className="muted inspector-tip">Overlays are always transparent and appear above slides. Turn them on and off in the Overlays panel during live.</div>
-      </Section>
+      <>
+        <Section title={overlay?.fullScreen ? 'Screen' : 'Overlay'}>
+          <Row label="Name">
+            <TextInput value={overlay?.name ?? ''} onChange={(name) => name.trim() && editOverlay('Rename overlay', (o) => (o.name = name.trim()))} />
+          </Row>
+          <Row label="Full screen">
+            <Toggle
+              checked={!!overlay?.fullScreen}
+              label="Replaces the slide (timers)"
+              onChange={(fullScreen) =>
+                editOverlay('Full screen', (o) => {
+                  o.fullScreen = fullScreen
+                  if (!fullScreen) o.slide.background = { type: 'none' }
+                })
+              }
+            />
+          </Row>
+          <div className="muted inspector-tip">
+            {overlay?.fullScreen
+              ? 'Shown on its own: showing it takes the slide and media off screen, and the next slide, media or logo replaces it. A transparent background lets the background video show through.'
+              : 'Overlays are transparent and appear above slides. Turn them on and off in the Overlays panel during live.'}
+          </div>
+        </Section>
+        {overlay?.fullScreen && (
+          <Section title="Screen background">
+            <BackgroundEditor
+              value={slide.background ?? { type: 'none' }}
+              media={profileMediaRecord(project)}
+              allowInherit={false}
+              onChange={(bg, coalesce) => editOverlay('Screen background', (o) => (o.slide.background = bg ?? { type: 'none' }), coalesce)}
+            />
+          </Section>
+        )}
+      </>
     )
   }
   const pres = project.presentations[target.presentationId]
@@ -357,7 +390,31 @@ export function SlideInspector({ project, target, slide }: { project: Project; t
         <Row label="Enabled">
           <Toggle checked={slide.enabled} label="Include in live navigation" onChange={(enabled) => editSlide('Enable slide', (s) => (s.enabled = enabled))} />
         </Row>
+        <Row label="Advance">
+          <Select
+            value={slide.advanceAfterSec === undefined ? 'inherit' : slide.advanceAfterSec === 0 ? 'never' : 'custom'}
+            options={[
+              { value: 'inherit', label: pres?.autoAdvanceSec ? `Presentation (${pres.autoAdvanceSec} s)` : 'Presentation (manual)' },
+              { value: 'never', label: 'Manual (wait for Next)' },
+              { value: 'custom', label: 'After a time' }
+            ]}
+            onChange={(v) =>
+              editSlide('Slide auto-advance', (s) => {
+                if (v === 'inherit') delete s.advanceAfterSec
+                else s.advanceAfterSec = v === 'never' ? 0 : (pres?.autoAdvanceSec ?? 8)
+              })
+            }
+          />
+          {!!slide.advanceAfterSec && (
+            <NumberField value={slide.advanceAfterSec} min={1} max={3600} suffix="s" onChange={(sec) => editSlide('Slide auto-advance', (s) => (s.advanceAfterSec = clampSeconds(Math.max(1, sec))), 'advance')} />
+          )}
+        </Row>
       </Section>
+      {pres && (
+        <Section title="Presentation playback">
+          <AutoAdvanceRows presentationId={pres.id} />
+        </Section>
+      )}
       <Section title="Slide background">
         <BackgroundEditor
           value={slide.background}

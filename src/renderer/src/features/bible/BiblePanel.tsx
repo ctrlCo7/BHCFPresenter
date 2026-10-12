@@ -1,7 +1,7 @@
 import { BookOpen, ListPlus, Radio, Search, Upload } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { formatReference, parseReference, type BibleBook, type BibleInfo, type Verse } from '@shared/bible'
-import { scripturePresentation } from '@shared/model/scripture'
+import { matchingBook, scripturePresentation, type ParallelLayout } from '@shared/model/scripture'
 import type { Id, Presentation, Project } from '@shared/model/types'
 import { IconButton, PanelHeader } from '../../components/ui/Panel'
 import { Select, Toggle } from '../../components/ui/fields'
@@ -28,11 +28,15 @@ function addScripture(pres: Presentation, playlistId?: Id): void {
 export function BiblePanel(): ReactElement {
   const project = useProjectStore((s) => s.project) as Project
   const bibleId = useUiStore((s) => s.bibleId)
+  const bibleId2 = useUiStore((s) => s.bibleId2)
+  const layout = useUiStore((s) => s.bibleLayout)
   const [bibles, setBibles] = useState<BibleInfo[]>([])
   const [books, setBooks] = useState<BibleBook[]>([])
   const [book, setBook] = useState(42) // John
   const [chapter, setChapter] = useState(3)
   const [verses, setVerses] = useState<Verse[]>([])
+  const [books2, setBooks2] = useState<BibleBook[]>([])
+  const [verses2, setVerses2] = useState<Verse[]>([])
   const [selected, setSelected] = useState<number[]>([])
   const [anchor, setAnchor] = useState<number | null>(null)
   const [reference, setReference] = useState('')
@@ -42,6 +46,8 @@ export function BiblePanel(): ReactElement {
   const [numbers, setNumbers] = useState(true)
 
   const bible = bibles.find((b) => b.id === bibleId) ?? bibles[0]
+  // Second translation for bilingual slides (never the same as the first).
+  const bible2 = bibles.find((b) => b.id === bibleId2 && b.id !== bible?.id)
 
   useEffect(() => {
     void window.bhcf.bible
@@ -70,6 +76,25 @@ export function BiblePanel(): ReactElement {
       .then(setVerses)
       .catch(() => setVerses([]))
   }, [bible, books, book, chapter])
+
+  useEffect(() => {
+    if (!bible2) return setBooks2([])
+    void window.bhcf.bible
+      .books(bible2.id)
+      .then(setBooks2)
+      .catch(() => setBooks2([]))
+  }, [bible2])
+
+  // The same chapter in the second translation (empty when it lacks the book or chapter).
+  const book2 = bible2 && books2.length ? matchingBook(books, books2, book) : null
+  useEffect(() => {
+    if (!bible2 || book2 === null) return setVerses2([])
+    void window.bhcf.bible
+      .chapter(bible2.id, book2, chapter)
+      .then(setVerses2)
+      .catch(() => setVerses2([]))
+  }, [bible2, book2, chapter])
+  const alt = useMemo(() => new Map(verses2.map((v) => [v.verse, v.text])), [verses2])
 
   const bookInfo = books[book]
   // Verses some translations omit (empty text) are never put on slides.
@@ -115,7 +140,8 @@ export function BiblePanel(): ReactElement {
       versesPerSlide: Number(perSlide),
       showVerseNumbers: numbers,
       translation: bible.abbreviation,
-      baseStyle: project.settings.defaultTextStyle
+      baseStyle: project.settings.defaultTextStyle,
+      ...(bible2 ? { parallel: { translation: bible2.abbreviation, verses: verses2.filter((v) => v.chapter === chapter), layout } } : {})
     })
   }
 
@@ -178,6 +204,12 @@ export function BiblePanel(): ReactElement {
           options={bibles.map((b) => ({ value: b.id, label: `${b.abbreviation} — ${b.name}` }))}
           onChange={(id) => ui.set({ bibleId: id })}
           width={200}
+        />
+        <Select
+          value={bible2?.id ?? ''}
+          options={[{ value: '', label: '+ Second translation…' }, ...bibles.filter((b) => b.id !== bible?.id).map((b) => ({ value: b.id, label: `+ ${b.abbreviation} — ${b.name}` }))]}
+          onChange={(id) => ui.set({ bibleId2: id || null })}
+          width={190}
         />
         <IconButton icon={<Upload size={14} />} title="Import a translation (BHCF Bible JSON)" onClick={importBible} />
       </PanelHeader>
@@ -258,7 +290,10 @@ export function BiblePanel(): ReactElement {
                 }}
               >
                 <span className="verse-num">{v.verse}</span>
-                <span>{v.text || <i className="muted">Not included in this translation (see footnotes of other versions)</i>}</span>
+                <span>
+                  {v.text || <i className="muted">Not included in this translation (see footnotes of other versions)</i>}
+                  {bible2 && alt.get(v.verse) && <span className="verse-alt">{alt.get(v.verse)}</span>}
+                </span>
               </div>
             ))}
           </div>
@@ -282,6 +317,20 @@ export function BiblePanel(): ReactElement {
           />
         </label>
         <Toggle checked={numbers} label="Verse numbers" onChange={setNumbers} />
+        {bible2 && (
+          <label className="bible-opt" title={`${bible?.abbreviation ?? ''} with ${bible2.abbreviation} on each slide`}>
+            {bible2.abbreviation}
+            <Select<ParallelLayout>
+              value={layout}
+              options={[
+                { value: 'side', label: 'Side by side' },
+                { value: 'stacked', label: 'Top / bottom' }
+              ]}
+              onChange={(v) => ui.set({ bibleLayout: v })}
+              width={120}
+            />
+          </label>
+        )}
         <button className="btn" disabled={!chosen.length} onClick={addToPlaylistMenu}>
           <ListPlus size={14} /> Playlist
         </button>

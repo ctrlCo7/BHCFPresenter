@@ -85,6 +85,16 @@ const api: BhcfApi = {
     search: (id, query, limit) => call(IPC.bibleSearch, id, query, limit),
     import: () => call(IPC.bibleImport)
   },
+  updates: {
+    status: () => call(IPC.updatesGet),
+    check: () => call(IPC.updatesCheck),
+    install: () => call(IPC.updatesInstall),
+    download: () => call(IPC.updatesDownload),
+    onStatus: (handler) => on(IPC.updatesStatus, handler)
+  },
+  songs: {
+    importFiles: () => call(IPC.songsImport)
+  },
   remote: {
     status: () => call(IPC.remoteGetStatus),
     setConfig: (config) => call(IPC.remoteSetConfig, config),

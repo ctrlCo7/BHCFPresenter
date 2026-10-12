@@ -21,7 +21,7 @@ import { showAbout, showShortcuts } from '../features/shell/HelpDialogs'
 import { enterEditMode, openEditor } from '../features/editor/editorActions'
 import { toggleDarkMode } from '../services/theme'
 import { openSettings } from '../features/settings/SettingsDialog'
-import { newSong } from '../features/songs/songActions'
+import { importSongs, newSong } from '../features/songs/songActions'
 import { openTemplates } from '../features/backgrounds/TemplatesDialog'
 import { exportActivePresentation, importPresentationFile } from '../features/presentation/transferActions'
 import { cleanupUnusedMedia } from '../features/media/mediaActions'
@@ -108,6 +108,7 @@ export function registerAppCommands(): void {
     { id: 'library.newPresentation', label: 'New Presentation', category: 'Library', defaultKeys: ['Mod+N'], allowInInput: true, enabled: hasProject, run: newPresentation },
     { id: 'library.newFromText', label: 'New Presentation from Text…', category: 'Library', defaultKeys: ['Mod+Shift+T'], enabled: hasProject, run: newPresentationFromText },
     { id: 'library.newSong', label: 'New Song…', category: 'Library', defaultKeys: ['Mod+Shift+L'], enabled: hasProject, run: newSong },
+    { id: 'library.importSongs', label: 'Import Songs…', category: 'Library', enabled: hasProject, run: () => void importSongs() },
     { id: 'library.templates', label: 'Templates (Backgrounds & Lyric Themes)…', category: 'Library', defaultKeys: ['Mod+T'], enabled: hasProject, run: () => openTemplates('backgrounds') },
     { id: 'library.newFolder', label: 'New Library Folder', category: 'Library', enabled: hasProject, run: () => newFolder('library') },
     { id: 'library.newPlaylist', label: 'New Playlist', category: 'Library', defaultKeys: ['Mod+Shift+P'], enabled: hasProject, run: newPlaylist },
@@ -167,6 +168,7 @@ export function registerAppCommands(): void {
 
     // Help
     { id: 'help.shortcuts', label: 'Keyboard Shortcuts', category: 'Help', defaultKeys: ['Mod+/'], allowInInput: true, run: showShortcuts },
+    { id: 'help.updates', label: 'Check for Updates…', category: 'Help', allowInInput: true, run: () => { openSettings('updates'); void window.bhcf.updates.check().catch(() => undefined) } },
     { id: 'help.about', label: 'About BHCF Presenter', category: 'Help', run: showAbout }
   ]
   registerCommands(commands)

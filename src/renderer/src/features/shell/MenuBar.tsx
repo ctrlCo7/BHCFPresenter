@@ -20,6 +20,7 @@ const MENUS: { label: string; items: MenuSpec[] }[] = [
       '-',
       'file.importMedia',
       'file.importPresentation',
+      'library.importSongs',
       'file.exportPresentation',
       '-',
       'file.backup',
@@ -38,14 +39,14 @@ const MENUS: { label: string; items: MenuSpec[] }[] = [
   },
   {
     label: 'Library',
-    items: ['library.newPresentation', 'library.newFromText', 'library.newSong', 'library.newFolder', '-', 'library.templates', '-', 'library.newPlaylist', 'library.newPlaylistFolder', '-', 'slides.add', 'slides.edit']
+    items: ['library.newPresentation', 'library.newFromText', 'library.newSong', 'library.importSongs', 'library.newFolder', '-', 'library.templates', '-', 'library.newPlaylist', 'library.newPlaylistFolder', '-', 'slides.add', 'slides.edit']
   },
   {
     label: 'Live',
     items: ['live.next', 'live.prev', '-', 'live.clear', 'live.black', 'live.logo', 'live.clearAll', '-', 'media.toggle', 'media.stop', '-', 'live.outputs']
   },
   { label: 'View', items: ['view.show', 'view.edit', 'view.live', '-', 'view.toggleMedia', 'view.zoomIn', 'view.zoomOut', '-', 'view.darkMode', '-', 'view.devtools'] },
-  { label: 'Help', items: ['help.shortcuts', 'help.about'] }
+  { label: 'Help', items: ['help.shortcuts', 'help.updates', 'help.about'] }
 ]
 
 function commandItem(id: string): MenuItem | null {

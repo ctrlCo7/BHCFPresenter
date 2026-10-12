@@ -1,4 +1,4 @@
-import { MonitorUp, Pause, Pencil, Play, Plus, RotateCcw, Timer, Trash2 } from 'lucide-react'
+import { MonitorUp, Palette, Pause, Pencil, Play, Plus, RotateCcw, Timer, Trash2 } from 'lucide-react'
 import { createElement, useEffect, useState, type ReactElement } from 'react'
 import type { Id, Project, TimerDef, TimerKind } from '@shared/model/types'
 import { formatTimer, idleRuntime, isTimerExpired } from '@shared/timers'
@@ -8,7 +8,7 @@ import { timerReset, timerToggle } from '../../live/liveActions'
 import { useLiveStore } from '../../live/liveStore'
 import { contextMenu, dialogs } from '../../store/overlayStore'
 import { useProjectStore } from '../../store/projectStore'
-import { deleteTimer, newTimer, showTimerOverlay, updateTimer } from './overlayActions'
+import { deleteTimer, editTimerDesign, newTimer, showTimerOverlay, timerOverlays, updateTimer } from './overlayActions'
 import './overlays.css'
 
 const KINDS: { value: TimerKind; label: string }[] = [
@@ -47,7 +47,8 @@ function TimerForm({ timer, onClose }: { timer: TimerDef; onClose: (v: Partial<T
         </Row>
       )}
       <p className="muted">
-        Show this timer in any text box with <code>{`{timer:${t.name || 'Name'}}`}</code>, on the stage display, or with the screen button.
+        Show this timer with the screen button (it replaces the slide), on the stage display, or in any text box with <code>{`{timer:${t.name || 'Name'}}`}</code>. Change its
+        look with the palette button.
       </p>
       <div className="modal-footer">
         <button className="btn" onClick={() => onClose(null)}>
@@ -111,11 +112,9 @@ export function TimersPanel({ compact = false }: { compact?: boolean }): ReactEl
             const view = { def: t, runtime }
             const expired = isTimerExpired(view, now)
             const runnable = t.kind === 'countdown' || t.kind === 'countup'
-            const onScreen = project.overlayOrder.some(
-              (oid) => overlaysOn.includes(oid) && project.overlays[oid]?.slide.elements.some((e) => e.type === 'text' && e.text.toLowerCase().includes(`{timer:${t.name}}`.toLowerCase()))
-            )
+            const onScreen = timerOverlays(project, t.name).some((oid) => overlaysOn.includes(oid))
             return (
-              <div key={t.id} className={`timer-row${runtime.running ? ' running' : ''}${expired ? ' expired' : ''}`}>
+              <div key={t.id} className={`timer-row${runtime.running ? ' running' : ''}${expired ? ' expired' : ''}`} onDoubleClick={(e) => !(e.target as HTMLElement).closest('button') && editTimerDesign(t.id)} title="Double-click to edit its design">
                 <div className="timer-info">
                   <span className="timer-name">{t.name}</span>
                   <span className="timer-kind">{KINDS.find((k) => k.value === t.kind)?.label}</span>
@@ -124,7 +123,8 @@ export function TimersPanel({ compact = false }: { compact?: boolean }): ReactEl
                 {runnable && <IconButton icon={runtime.running ? <Pause size={14} /> : <Play size={14} />} title={runtime.running ? 'Pause' : 'Start'} onClick={() => timerToggle(t.id)} />}
                 {runnable && <IconButton icon={<RotateCcw size={14} />} title="Reset" onClick={() => timerReset(t.id)} />}
                 <IconButton icon={<MonitorUp size={14} />} title={onScreen ? 'Hide from screen' : 'Show on screen'} active={onScreen} onClick={() => showTimerOverlay(t.id)} />
-                {!compact && <IconButton icon={<Pencil size={14} />} title="Edit timer" onClick={() => void editTimer(t.id)} />}
+                <IconButton icon={<Palette size={14} />} title="Edit design (fonts, colours, background) in the slide editor" onClick={() => editTimerDesign(t.id)} />
+                {!compact && <IconButton icon={<Pencil size={14} />} title="Timer settings (name, type, duration)" onClick={() => void editTimer(t.id)} />}
                 {!compact && <IconButton icon={<Trash2 size={14} />} title="Delete timer" onClick={() => void deleteTimer(t.id)} />}
               </div>
             )

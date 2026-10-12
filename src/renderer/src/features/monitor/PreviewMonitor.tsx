@@ -17,6 +17,7 @@ import { useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import { inheritedBackground } from '../presentation/PresentationPanel'
 import { patchSlides } from '../presentation/slideActions'
+import { AutoAdvanceBar } from './AutoAdvanceBar'
 import { MediaTransport } from './MediaTransport'
 import './monitor.css'
 
@@ -97,6 +98,7 @@ export function ProgramMonitor({ compact = false }: { compact?: boolean }): Reac
             onClick={toggleOutputs}
           />
         </div>
+        <AutoAdvanceBar />
         <MediaTransport />
       </div>
     </div>

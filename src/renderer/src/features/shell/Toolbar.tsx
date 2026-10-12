@@ -90,6 +90,7 @@ function openMore(e: React.MouseEvent<HTMLButtonElement>): void {
       { type: 'separator' },
       { label: 'Import Media…', icon: <Upload size={14} />, shortcut: shortcutLabel('file.importMedia'), onSelect: () => runCommand('file.importMedia') },
       { label: 'Import Presentation…', icon: <FileInput size={14} />, onSelect: () => runCommand('file.importPresentation') },
+      { label: 'Import Songs (TXT, ChordPro, OpenLyrics, PowerPoint)…', icon: <FileInput size={14} />, onSelect: () => runCommand('library.importSongs') },
       { type: 'separator' },
       { label: 'Backgrounds…', icon: <Wallpaper size={14} />, onSelect: () => runCommand('library.templates') },
       { label: 'Keyboard Shortcuts', shortcut: shortcutLabel('help.shortcuts'), onSelect: () => runCommand('help.shortcuts') }

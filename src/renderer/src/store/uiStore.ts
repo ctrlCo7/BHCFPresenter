@@ -4,6 +4,7 @@
  */
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { ParallelLayout } from '@shared/model/scripture'
 import type { Id, MediaKind, TreeScope } from '@shared/model/types'
 
 export type AppMode = 'show' | 'edit' | 'live'
@@ -58,6 +59,9 @@ export interface UiState {
   rightTab: RightTab
   /** Bible panel: chosen translation */
   bibleId: string | null
+  /** Bible panel: second translation shown with the first (null = none) */
+  bibleId2: string | null
+  bibleLayout: ParallelLayout
 }
 
 const defaultLayout: Layout = {
@@ -89,12 +93,14 @@ export const useUiStore = create<UiState>()(
       selectedElementIds: [],
       bottomTab: 'media',
       rightTab: 'preview',
-      bibleId: null
+      bibleId: null,
+      bibleId2: null,
+      bibleLayout: 'side'
     }),
     {
       name: 'bhcf-ui',
       version: 1,
-      partialize: (s) => ({ layout: s.layout, thumbWidth: s.thumbWidth, bottomTab: s.bottomTab, rightTab: s.rightTab, bibleId: s.bibleId }),
+      partialize: (s) => ({ layout: s.layout, thumbWidth: s.thumbWidth, bottomTab: s.bottomTab, rightTab: s.rightTab, bibleId: s.bibleId, bibleId2: s.bibleId2, bibleLayout: s.bibleLayout }),
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<UiState>
         return {
@@ -104,6 +110,8 @@ export const useUiStore = create<UiState>()(
           // Overlays and timers used to be bottom tabs; they now sit under the Program monitor.
           rightTab: p.rightTab === 'overlays' || p.rightTab === 'timers' ? p.rightTab : (p.bottomTab as string) === 'overlays' || (p.bottomTab as string) === 'timers' ? (p.bottomTab as RightTab) : 'preview',
           bibleId: typeof p.bibleId === 'string' ? p.bibleId : null,
+          bibleId2: typeof p.bibleId2 === 'string' ? p.bibleId2 : null,
+          bibleLayout: p.bibleLayout === 'stacked' ? 'stacked' : 'side',
           layout: { ...defaultLayout, ...(p.layout ?? {}) }
         }
       }

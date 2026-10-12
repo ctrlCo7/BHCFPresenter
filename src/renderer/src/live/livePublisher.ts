@@ -8,6 +8,7 @@ import { emptyLiveState, type LiveState } from '@shared/live'
 import type { Project, Slide } from '@shared/model/types'
 import { idleRuntime } from '@shared/timers'
 import { useProjectStore } from '../store/projectStore'
+import { tickAutoAdvance } from './autoAdvance'
 import { pruneLive, resolveBackground, resolveTransition, tickMedia } from './liveActions'
 import { live, useLiveStore, type LiveOpState } from './liveStore'
 
@@ -78,7 +79,10 @@ export function startLivePublisher(): () => void {
     .status()
     .then((st) => live.set({ outputsActive: st.active, outputs: st.outputs }))
     .catch(() => undefined)
-  const ticker = window.setInterval(tickMedia, 250)
+  const ticker = window.setInterval(() => {
+    tickMedia()
+    tickAutoAdvance()
+  }, 250)
   schedule()
   return () => {
     unsubLive()

@@ -1,9 +1,11 @@
 import { createOverlay, createTimer, newId, type OverlayTemplate } from '@shared/model/factory'
-import type { Id, TimerDef } from '@shared/model/types'
+import type { Id, Project, TimerDef } from '@shared/model/types'
+import { toggleOverlay } from '../../live/liveActions'
 import { live } from '../../live/liveStore'
 import { dialogs, toast } from '../../store/overlayStore'
 import { applyChange, requireProject } from '../../store/projectStore'
 import { ui } from '../../store/uiStore'
+import { openOverlayEditor } from '../editor/editorActions'
 
 export function newOverlay(template: OverlayTemplate, timerName?: string): Id | null {
   const p = requireProject()
@@ -75,7 +77,15 @@ export function newTimer(kind: TimerDef['kind'] = 'countdown'): Id {
 export function updateTimer(id: Id, patch: Partial<Omit<TimerDef, 'id'>>): void {
   applyChange('Edit timer', (d) => {
     const t = d.timers[id]
-    if (t) Object.assign(t, patch)
+    if (!t) return
+    const oldName = t.name
+    Object.assign(t, patch)
+    if (patch.name === undefined || patch.name === oldName) return
+    // Keep text showing this timer pointing at it.
+    const token = new RegExp(`\\{timer:${oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\}`, 'gi')
+    const slides = [...Object.values(d.overlays).map((o) => o.slide), ...Object.values(d.presentations).flatMap((p) => p.slides)]
+    for (const s of slides) for (const e of s.elements) if (e.type === 'text') e.text = e.text.replace(token, `{timer:${t.name}}`)
+    for (const o of Object.values(d.overlays)) if (o.name === `${oldName} Overlay`) o.name = `${t.name} Overlay`
   })
 }
 
@@ -89,15 +99,37 @@ export async function deleteTimer(id: Id): Promise<void> {
   })
 }
 
-/** Shows a timer on the main output via an overlay (created on first use). */
+/** The overlays showing a timer, its full-screen timer screen first. */
+export function timerOverlays(p: Project, timerName: string): Id[] {
+  const token = `{timer:${timerName}}`.toLowerCase()
+  const ids = p.overlayOrder.filter((oid) => p.overlays[oid]?.slide.elements.some((e) => e.type === 'text' && e.text.toLowerCase().includes(token)))
+  return [...ids.filter((oid) => p.overlays[oid]?.fullScreen), ...ids.filter((oid) => !p.overlays[oid]?.fullScreen)]
+}
+
+/** The timer's screen (created on first use). */
+function timerScreen(id: Id): Id | null {
+  const p = requireProject()
+  const t = p.timers[id]
+  if (!t) return null
+  return timerOverlays(p, t.name)[0] ?? newOverlay('countdown', t.name)
+}
+
+/** Shows or hides a timer on the main output. It replaces the slide rather than sitting on top of it. */
 export function showTimerOverlay(id: Id): void {
   const p = requireProject()
   const t = p.timers[id]
   if (!t) return
-  const token = `{timer:${t.name}}`.toLowerCase()
-  let overlayId = p.overlayOrder.find((oid) => p.overlays[oid]?.slide.elements.some((e) => e.type === 'text' && e.text.toLowerCase().includes(token)))
-  overlayId ??= newOverlay('countdown', t.name) ?? undefined
-  if (!overlayId) return
-  const oid = overlayId
-  live.set((s) => ({ overlays: s.overlays.includes(oid) ? s.overlays.filter((x) => x !== oid) : [...s.overlays, oid] }))
+  const on = timerOverlays(p, t.name).filter((oid) => live.get().overlays.includes(oid))
+  if (on.length) {
+    live.set((s) => ({ overlays: s.overlays.filter((x) => !on.includes(x)) }))
+    return
+  }
+  const oid = timerScreen(id)
+  if (oid) toggleOverlay(oid)
+}
+
+/** Opens the timer's screen in the slide editor (fonts, colours, background, extra text…). */
+export function editTimerDesign(id: Id): void {
+  const oid = timerScreen(id)
+  if (oid) openOverlayEditor(oid)
 }

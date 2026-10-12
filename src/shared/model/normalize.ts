@@ -6,7 +6,7 @@
  * references are repaired. Every repair is reported so the UI can tell the user.
  */
 import { isValidMediaFileName } from '../media'
-import { createMediaPlaylist, createProfile, DEFAULT_PROFILE_NAMES, defaultBackground, defaultMediaPlaylists, defaultProjectSettings, defaultTextStyle, defaultTransition, nowIso } from './factory'
+import { createMediaPlaylist, createProfile, DEFAULT_PROFILE_NAMES, defaultBackground, defaultMediaPlaylists, defaultProjectSettings, defaultTextStyle, defaultTransition, isTimerScreen, nowIso } from './factory'
 import {
   PROJECT_FORMAT,
   PROJECT_SCHEMA_VERSION,
@@ -210,8 +210,14 @@ function normSlide(v: unknown, repairs: string[], ctx: string): Slide | null {
     background: normBackground(v.background),
     notes: str(v.notes, ''),
     transition: normTransition(v.transition),
-    enabled: bool(v.enabled, true)
+    enabled: bool(v.enabled, true),
+    ...(typeof v.advanceAfterSec === 'number' && v.advanceAfterSec >= 0 ? { advanceAfterSec: clampSeconds(v.advanceAfterSec) } : {})
   }
+}
+
+/** Auto-advance seconds: 0 (never) up to an hour, to a tenth of a second. */
+export function clampSeconds(sec: number): number {
+  return Number.isFinite(sec) ? Math.round(clamp(sec, 0, 3600) * 10) / 10 : 0
 }
 
 function normSong(v: unknown): SongData | null {
@@ -244,7 +250,9 @@ function normOverlay(id: Id, v: unknown, repairs: string[]): Overlay | null {
   const name = str(v.name, 'Overlay')
   const slide = normSlide(v.slide, repairs, `overlay "${name}"`)
   if (!slide) return null
-  return { id, name, slide: { ...slide, background: { type: 'none' } } }
+  // Older projects: countdown overlays become full-screen timer screens.
+  const fullScreen = bool(v.fullScreen, isTimerScreen(slide))
+  return { id, name, slide: fullScreen ? slide : { ...slide, background: { type: 'none' } }, fullScreen }
 }
 
 function normTimer(id: Id, v: unknown): TimerDef | null {
@@ -308,6 +316,8 @@ function normPresentation(id: Id, v: unknown, repairs: string[]): Presentation |
     transition: normTransition(v.transition),
     meta,
     song: normSong(v.song),
+    ...(typeof v.autoAdvanceSec === 'number' && v.autoAdvanceSec > 0 ? { autoAdvanceSec: clampSeconds(v.autoAdvanceSec) } : {}),
+    ...(v.loop === true ? { loop: true } : {}),
     createdAt: str(v.createdAt, now),
     updatedAt: str(v.updatedAt, now)
   }

@@ -7,6 +7,7 @@
  *  - "books" JSON       { translation?, books: [{ name, chapters: [{ chapter, verses: [{ verse, text }] }] }] }
  *  - array JSON         [{ name?, abbrev?, chapters: [["v1", "v2"], …] }, …]
  */
+import { decodeXmlEntities } from './xml'
 import { validateBibleData, type BibleData } from './bible'
 
 export const ENGLISH_BOOKS =
@@ -46,16 +47,7 @@ function finish(books: { name: string; chapters: string[][] }[], meta: BibleMeta
   })
 }
 
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_m, n: string) => String.fromCodePoint(Number(n)))
-    .replace(/&#x([0-9a-f]+);/gi, (_m, n: string) => String.fromCodePoint(parseInt(n, 16)))
-    .replace(/&amp;/g, '&')
-}
+const decodeEntities = decodeXmlEntities
 
 const attr = (tag: string, name: string): string | null => new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`, 'i').exec(tag)?.[1] ?? null
 

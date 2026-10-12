@@ -8,6 +8,7 @@ import { listDisplays, registerIpc } from './ipc/registerIpc'
 import { OutputManager } from './output/OutputManager'
 import { ProjectStore } from './project/ProjectStore'
 import { RemoteServer } from './remote/RemoteServer'
+import { UpdateService } from './updates/UpdateService'
 import { installCrashLogging, log } from './util/log'
 import { createMainWindow, focusWindow, loadRendererPage, titleBarColors, windowBackground } from './windows/mainWindow'
 
@@ -28,6 +29,7 @@ if (!app.requestSingleInstanceLock()) {
     (cmd) => getMainWindow()?.webContents.send(IPC.remoteCommand, cmd),
     (status) => getMainWindow()?.webContents.send(IPC.remoteStatus, status)
   )
+  const updates = new UpdateService((status) => getMainWindow()?.webContents.send(IPC.updatesStatus, status))
   const projectsRoot = (): string => path.join(app.getPath('documents'), 'BHCF Presenter', 'Projects')
 
   app.on('second-instance', () => focusWindow(mainWindow))
@@ -50,7 +52,7 @@ if (!app.requestSingleInstanceLock()) {
       () => store.current?.media ?? null,
       () => config.get().backgroundsDir ?? path.join(app.getPath('documents'), 'Backgrounds')
     )
-    registerIpc({ store, config, outputs, bibles, remote, getMainWindow, projectsRoot })
+    registerIpc({ store, config, outputs, bibles, remote, updates, getMainWindow, projectsRoot })
 
     const onDisplaysChanged = (): void => {
       getMainWindow()?.webContents.send(IPC.displaysChanged, listDisplays())
@@ -72,6 +74,7 @@ if (!app.requestSingleInstanceLock()) {
     open()
 
     if (config.get().remote.enabled) void remote.apply(config.get().remote)
+    updates.start()
     log('info', `BHCF Presenter ${app.getVersion()} started (Electron ${process.versions.electron})`)
 
     app.on('activate', () => {

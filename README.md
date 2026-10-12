@@ -31,10 +31,14 @@ The npm scripts launch Electron through `scripts/electron-vite.mjs`, which clear
 - **Dark mode:** the moon/sun button in the toolbar (Ctrl+Shift+D), or Settings → Appearance (Light, Dark or match Windows).
 - **Outputs:** press **F** (or click **Outputs** in the toolbar) to open the outputs. Settings → Outputs assigns each output to a screen. With one screen, choose "Window" to see the output in a window.
 - **Stage display:** set an output to "Stage display" and configure it in Settings → Stage Display.
+- **Timers:** the screen button shows a timer full screen. It replaces the slide, and the next slide, media or logo replaces it, so they never overlap. The palette button (or double-clicking the timer) opens its design in the slide editor: fonts, colours, position, extra text and a background.
+- **Auto-advance and loops:** the loop button on a presentation (or the slide editor's *Presentation playback*) moves slides on by themselves every few seconds and can start again after the last slide, for pre-service announcements. A slide can set its own time or wait for Next. A bar under the Program monitor counts down and can pause it.
+- **Updates:** installed copies check GitHub for new releases. On Windows the update downloads in the background and installs when the app closes (Settings → Updates → *Restart and install* to do it now). On a Mac the app offers the new .dmg to download.
 - **Remote:** in Settings → Remote, enable it, then open the address shown on a phone on the same Wi-Fi and enter the PIN.
 
 ## Songs, backgrounds and Bibles
 
+- **Import songs** (Library → Import Songs…): select several files at once. Plain text (.txt), ChordPro (.cho, .chordpro, .crd), OpenLyrics (.xml, from OpenLP and others) and PowerPoint (.pptx, the slide text; repeated slides become the chorus). They go into Library › Songs.
 - **New song** (Library → ♪ or Ctrl+Shift+L): paste the whole song. Headings (`Verse 1`, `V1`, `(Chorus)`, `Chorus x2`, `Repeat Chorus`…), chord lines and CCLI/copyright lines are handled automatically, and the slides update as you paste or edit. Lines per slide defaults to **Auto**.
 - **Background videos:**
   1. Import videos in the **Media** tab, or create free loops with **Templates** (Ctrl+T).
@@ -43,6 +47,7 @@ The npm scripts launch Electron through `scripts/electron-vite.mjs`, which clear
 - **Lyric themes:** the palette button on a presentation, or Templates → Lyric Themes, restyles every slide. 22 themes, from Classic and Bold Caps to Soft Minimal, Poster Stack, Editorial Italic, Handwritten, Cinematic, Frosted Glass, Neon Glow and Sunset Glow. Most keep the background transparent for a video; Midnight, Forest Dawn and Paper & Ink bring their own.
 - **Bibles:**
   - Included (public domain): KJV, BSB, NHEB, ASV, YLT, BBE, Tagalog Ang Biblia 1905, Cebuano 1917.
+  - **Two translations on one slide:** pick a second translation with *+ Second translation* in the Bible tab (e.g. KJV with Tagalog). Its text shows under each verse, and slides put both side by side or top and bottom.
   - NIV, ESV and NLT are copyrighted and can't be bundled. If you have a licensed copy as a Zefania XML or JSON file, import it with the ⇪ button in the Bible tab.
 
 ## Live shortcuts (customisable in Settings → Shortcuts)

@@ -134,7 +134,7 @@ Every action is a named command (`services/commands.ts`) with default keys. Menu
 
 ### Known limitations / next steps
 
-- Installers are not set up yet; adding electron-builder is the next step for distribution.
+- Installers are unsigned (Windows SmartScreen / macOS Gatekeeper warnings). Without an Apple Developer certificate, macOS copies cannot update themselves; they are offered the new .dmg instead.
 - Font choice is a curated list plus free text, not a system font picker.
 - Element resize ignores rotation (it resizes in the element's unrotated frame).
 - MOV playback depends on the file's codec; H.264 works, but ProRes is not supported by Chromium.

@@ -378,7 +378,7 @@ export function createOverlay(canvas: CanvasSize, template: OverlayTemplate, log
       })
       t.autoFit = false
       slide.elements = [t]
-      break
+      return { id: newId(), name, slide, fullScreen: true }
     }
     case 'logo': {
       name = 'Logo Bug'
@@ -395,6 +395,11 @@ export function createOverlay(canvas: CanvasSize, template: OverlayTemplate, log
       break
   }
   return { id: newId(), name, slide }
+}
+
+/** A text box holding nothing but a timer token, e.g. "{timer:Countdown}". */
+export function isTimerScreen(slide: Slide): boolean {
+  return slide.elements.some((e) => e.type === 'text' && /^\s*\{timer:[^}]+\}\s*$/i.test(e.text))
 }
 
 export function createTimer(name: string, kind: TimerKind = 'countdown'): TimerDef {

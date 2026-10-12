@@ -1,4 +1,4 @@
-import { Crosshair, FolderOpen, Keyboard, Laptop, Monitor, MonitorSmartphone, Moon, Palette, Plus, RotateCcw, Settings2, Sun, Trash2, Tv, Wrench, X } from 'lucide-react'
+import { Crosshair, FolderOpen, Keyboard, Laptop, Monitor, MonitorSmartphone, Moon, Palette, Plus, RefreshCw, RotateCcw, Settings2, Sun, Trash2, Tv, Wrench, X } from 'lucide-react'
 import { createElement, useEffect, useState, type ReactElement } from 'react'
 import type { DisplayInfo, RemoteStatus } from '@shared/ipc'
 import { defaultStageLayout, type OutputConfig } from '@shared/live'
@@ -14,9 +14,10 @@ import { BackgroundEditor, TransitionEditor } from '../editor/BackgroundEditor'
 import { FontPicker } from '../../components/ui/FontPicker'
 import { cleanupUnusedMedia } from '../media/mediaActions'
 import { exportActivePresentation, importPresentationFile } from '../presentation/transferActions'
+import { UpdatesTab } from './UpdatesTab'
 import './settings.css'
 
-export type SettingsTab = 'appearance' | 'outputs' | 'stage' | 'project' | 'shortcuts' | 'remote' | 'maintenance'
+export type SettingsTab = 'appearance' | 'outputs' | 'stage' | 'project' | 'shortcuts' | 'remote' | 'maintenance' | 'updates'
 
 const TABS: { id: SettingsTab; label: string; icon: ReactElement }[] = [
   { id: 'outputs', label: 'Outputs', icon: <Tv size={15} /> },
@@ -25,7 +26,8 @@ const TABS: { id: SettingsTab; label: string; icon: ReactElement }[] = [
   { id: 'shortcuts', label: 'Shortcuts', icon: <Keyboard size={15} /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette size={15} /> },
   { id: 'remote', label: 'Remote', icon: <MonitorSmartphone size={15} /> },
-  { id: 'maintenance', label: 'Maintenance', icon: <Wrench size={15} /> }
+  { id: 'maintenance', label: 'Maintenance', icon: <Wrench size={15} /> },
+  { id: 'updates', label: 'Updates', icon: <RefreshCw size={15} /> }
 ]
 
 function useOutputs(): [OutputConfig[] | null, (next: OutputConfig[]) => void] {
@@ -434,6 +436,7 @@ function Settings({ initial, onClose }: { initial: SettingsTab; onClose: () => v
         {tab === 'appearance' && <AppearanceTab />}
         {tab === 'remote' && <RemoteTab />}
         {tab === 'maintenance' && project && <MaintenanceTab />}
+        {tab === 'updates' && <UpdatesTab />}
       </div>
     </div>
   )

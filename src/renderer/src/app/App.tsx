@@ -17,6 +17,7 @@ import { Workspace } from '../features/shell/Workspace'
 import { live } from '../live/liveStore'
 import { startLivePublisher } from '../live/livePublisher'
 import { startRemoteBridge } from '../live/remoteBridge'
+import { startUpdateListener } from '../services/updates'
 import { startAutosave } from '../services/autosave'
 import { installShortcutDispatcher, runCommand } from '../services/commands'
 import { openLastProject } from '../services/projectActions'
@@ -40,6 +41,7 @@ export function App(): ReactElement {
     const stopAutosave = startAutosave()
     const stopLive = startLivePublisher()
     const stopRemote = startRemoteBridge()
+    const stopUpdates = startUpdateListener()
     // Shortcuts are suspended while a dialog or menu is open.
     const stopShortcuts = installShortcutDispatcher(() => useDialogStore.getState().stack.length > 0 || useMenuStore.getState().menu !== null)
     void window.bhcf.app.info().then((i) => {
@@ -63,6 +65,7 @@ export function App(): ReactElement {
       stopAutosave()
       stopLive()
       stopRemote()
+      stopUpdates()
       stopShortcuts()
       window.removeEventListener('error', onError)
       window.removeEventListener('unhandledrejection', onRejection)

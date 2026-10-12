@@ -28,6 +28,7 @@ export const ProgramRenderer = memo(function ProgramRenderer({ live, width, heig
   const offsetY = (height - canvas.height * scale) / 2
   const slideSpec: TransitionSpec = live.slide?.transition ?? live.fade
 
+  // Overlays draw their slide background: always "none" except on full screens (timer screens).
   // Overlays leave with an animation, so remember every overlay seen and render a stack for each.
   const seenOverlays = useRef<string[]>([])
   for (const o of live.overlays) if (!seenOverlays.current.includes(o.id)) seenOverlays.current.push(o.id)
@@ -76,7 +77,7 @@ export const ProgramRenderer = memo(function ProgramRenderer({ live, width, heig
                 key={id}
                 itemKey={slide ? `overlay:${id}` : null}
                 spec={live.fade}
-                node={slide ? <SlideContent slide={slide} background={null} media={live.assets} mode="output" audio={audio} /> : null}
+                node={slide ? <SlideContent slide={slide} background={slide.background} media={live.assets} mode="output" audio={audio} /> : null}
               />
             )
           })}

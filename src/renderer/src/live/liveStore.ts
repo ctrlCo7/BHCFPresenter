@@ -25,6 +25,10 @@ export interface LiveOpState {
   /** Last slide taken, so Next continues after a Clear */
   last: LiveCursor | null
   takeId: number
+  /** When the current slide was taken (ms), for auto-advance */
+  takenAt: number
+  /** Operator paused auto-advance (slides stay until Next) */
+  autoAdvancePaused: boolean
   /** Background left on screen after clearing the slide text */
   heldBackground: Background | null
   black: boolean
@@ -48,6 +52,8 @@ export const useLiveStore = create<LiveOpState>(() => ({
   cursor: null,
   last: null,
   takeId: 0,
+  takenAt: 0,
+  autoAdvancePaused: false,
   heldBackground: null,
   black: false,
   logo: false,

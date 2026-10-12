@@ -236,3 +236,10 @@
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+.transport-auto .transport-bar {
+  height: 4px;
+  cursor: default;
+}
+.transport-auto.paused .transport-name {
+  color: var(--text-2);
+}

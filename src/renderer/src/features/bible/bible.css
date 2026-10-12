@@ -127,3 +127,9 @@
 .bible-bar .f-select {
   flex: none;
 }
+.verse-alt {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-2);
+  font-style: italic;
+}

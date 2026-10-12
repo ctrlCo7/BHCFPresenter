@@ -13,6 +13,9 @@ import { exportPresentation, importPresentation } from '../project/PresentationT
 import { PROJECT_FILE, type ProjectStore } from '../project/ProjectStore'
 import type { RemoteServer } from '../remote/RemoteServer'
 import { AppError, exists, sanitizeFileName } from '../util/fsx'
+import { SONG_FILE_EXTENSIONS } from '../../shared/songImport'
+import { readSongFiles } from '../songs/songFiles'
+import type { UpdateService } from '../updates/UpdateService'
 import { log, logsDir } from '../util/log'
 import { isDev } from '../windows/mainWindow'
 
@@ -22,6 +25,7 @@ interface Deps {
   outputs: OutputManager
   bibles: BibleService
   remote: RemoteServer
+  updates: UpdateService
   getMainWindow: () => BrowserWindow | null
   projectsRoot: () => string
 }
@@ -48,7 +52,7 @@ function wrap<T>(channel: string, fn: () => Promise<T> | T): Promise<IpcResult<T
     })
 }
 
-export function registerIpc({ store, config, outputs, bibles, remote, getMainWindow, projectsRoot }: Deps): void {
+export function registerIpc({ store, config, outputs, bibles, remote, updates, getMainWindow, projectsRoot }: Deps): void {
   /** Operator-only handler: only the app's own main window may call privileged APIs. */
   const h = <A extends unknown[], T>(channel: string, fn: (event: IpcMainInvokeEvent, ...args: A) => Promise<T> | T): void => {
     ipcMain.handle(channel, (event, ...args): Promise<IpcResult<T>> => {
@@ -302,6 +306,28 @@ export function registerIpc({ store, config, outputs, bibles, remote, getMainWin
     })
     if (res.canceled || !res.filePaths[0]) return null
     return bibles.importFile(res.filePaths[0])
+  })
+
+  /* ------------------------------ Updates ------------------------------ */
+
+  h(IPC.updatesGet, () => updates.current)
+  h(IPC.updatesCheck, () => updates.check(true))
+  h(IPC.updatesInstall, () => updates.installNow())
+  h(IPC.updatesDownload, () => updates.openDownload())
+
+  /* ------------------------------ Songs ------------------------------ */
+
+  h(IPC.songsImport, async () => {
+    const res = await openDialog({
+      title: 'Import Songs',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'Song files (Text, ChordPro, OpenLyrics, PowerPoint)', extensions: SONG_FILE_EXTENSIONS },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })
+    if (res.canceled || res.filePaths.length === 0) return null
+    return readSongFiles(res.filePaths.slice(0, 500))
   })
 
   /* ------------------------------ Remote ------------------------------ */

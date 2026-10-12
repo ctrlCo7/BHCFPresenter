@@ -37,9 +37,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}
+          # latest*.yml and .blockmap files let installed copies find and download updates.
           path: |
             dist/*.exe
             dist/*.dmg
+            dist/*.blockmap
+            dist/latest*.yml
           if-no-files-found: error
 
   release:

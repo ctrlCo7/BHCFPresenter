@@ -15,6 +15,7 @@ import {
   Type,
   PenTool,
   Radio,
+  Repeat,
   Download,
   Palette as PaletteIcon
 } from 'lucide-react'
@@ -27,6 +28,7 @@ import { shortcutLabel } from '../../services/commands'
 import { beginDrag, currentDrag, endDrag } from '../../services/dragState'
 import { setFocusZone, useZoneHandlers } from '../../services/focusZones'
 import { contextMenu, type MenuItem } from '../../store/overlayStore'
+import { editAutoAdvance } from './AutoAdvanceRows'
 import { useProjectStore } from '../../store/projectStore'
 import { ui, useUiStore } from '../../store/uiStore'
 import { newPresentation, newPresentationFromText } from '../library/libraryActions'
@@ -346,6 +348,12 @@ function SlideGrid({ project, pres }: { project: Project; pres: Presentation }):
         />
         <IconButton icon={<Music size={14} />} title={pres.kind === 'song' ? 'Edit song lyrics' : 'Edit as song (lyrics)'} onClick={() => void editSong(pres.id)} />
         <IconButton icon={<PaletteIcon size={14} />} title="Lyric theme (text style)" onClick={() => openTemplates('themes')} />
+        <IconButton
+          icon={<Repeat size={14} />}
+          title={pres.autoAdvanceSec || pres.loop ? `Auto-advance: ${pres.autoAdvanceSec ? `every ${pres.autoAdvanceSec} s` : 'manual'}${pres.loop ? ', looping' : ''}` : 'Auto-advance / loop (announcements)'}
+          active={!!(pres.autoAdvanceSec || pres.loop)}
+          onClick={() => void editAutoAdvance(pres.id)}
+        />
         <IconButton icon={<PenTool size={14} />} title="Open in slide editor" onClick={() => openEditor(pres.id)} />
         <IconButton icon={<Download size={14} />} title="Export presentation (.bhcfpres)" onClick={() => void exportPresentation(pres.id)} />
         <IconButton icon={<Plus size={15} />} title="New slide" onClick={addSlide} />

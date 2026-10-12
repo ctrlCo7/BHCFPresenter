@@ -31,7 +31,7 @@ import { setFocusZone, useZoneHandlers } from '../../services/focusZones'
 import { contextMenu, type MenuItem } from '../../store/overlayStore'
 import { applyChange, useProjectStore } from '../../store/projectStore'
 import { ui, useUiStore } from '../../store/uiStore'
-import { editSong, newSong } from '../songs/songActions'
+import { editSong, importSongs, newSong } from '../songs/songActions'
 import { otherProfiles, sendToProfile } from '../profiles/profileActions'
 import { exportPresentation } from '../presentation/transferActions'
 import {
@@ -377,7 +377,7 @@ export function TreeSection({ scope }: { scope: TreeScope }): ReactElement {
       items.push(
         { label: 'New Presentation', icon: <Plus size={14} />, onSelect: newPresentation },
         { label: 'New Presentation from Text…', icon: <Type size={14} />, onSelect: () => void newPresentationFromText() },
-        { label: 'New Song…', icon: <Music size={14} />, onSelect: () => void newSong() },
+        { label: 'New Song…', icon: <Music size={14} />, onSelect: () => void newSong() }, { label: 'Import Songs…', icon: <Music size={14} />, onSelect: () => void importSongs() },
         { label: 'New Folder', icon: <FolderPlus size={14} />, onSelect: () => newFolder('library') }
       )
       if (project.presentations[row.id]) {
@@ -435,7 +435,7 @@ export function TreeSection({ scope }: { scope: TreeScope }): ReactElement {
         ? [
             { label: 'New Presentation', icon: <Plus size={14} />, onSelect: newPresentation },
             { label: 'New Presentation from Text…', icon: <Type size={14} />, onSelect: () => void newPresentationFromText() },
-            { label: 'New Song…', icon: <Music size={14} />, onSelect: () => void newSong() },
+            { label: 'New Song…', icon: <Music size={14} />, onSelect: () => void newSong() }, { label: 'Import Songs…', icon: <Music size={14} />, onSelect: () => void importSongs() },
             { label: 'New Folder', icon: <FolderPlus size={14} />, onSelect: () => newFolder('library') }
           ]
         : [

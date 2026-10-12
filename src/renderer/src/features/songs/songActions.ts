@@ -5,7 +5,8 @@ import { applyThemeToElement, findTheme, themeTemplate } from '@shared/model/the
 import type { Background, Id, Presentation, Project, SongData } from '@shared/model/types'
 import { addFolder, addPresentation } from '../../engine/projectOps'
 import { applyDesignToSlides } from '../../engine/elementOps'
-import { dialogs } from '../../store/overlayStore'
+import { songFromFile } from '@shared/songImport'
+import { dialogs, errorMessage, toast } from '../../store/overlayStore'
 import { applyChange, requireProject } from '../../store/projectStore'
 import { ui } from '../../store/uiStore'
 import { SongEditor, type SongEditorResult } from './SongEditor'
@@ -78,6 +79,49 @@ export async function newSong(): Promise<void> {
   })
   ui.set({ treeSelection: { scope: 'library', id: pres.id } })
   ui.openPresentation(pres.id)
+}
+
+/** File → Import Songs: text, ChordPro, OpenLyrics and PowerPoint files become songs in the Songs folder. */
+export async function importSongs(): Promise<void> {
+  let res: Awaited<ReturnType<typeof window.bhcf.songs.importFiles>>
+  try {
+    res = await window.bhcf.songs.importFiles()
+  } catch (err) {
+    toast.error('Could not import songs', errorMessage(err))
+    return
+  }
+  if (!res) return
+  const p = requireProject()
+  const errors = [...res.errors]
+  const made: Presentation[] = []
+  for (const file of res.files) {
+    try {
+      const song = songFromFile(file)
+      const { groups, slides } = buildSlides(p, song, p.settings.linesPerSlide, null)
+      const pres = createPresentation(song.title, slides, 'song')
+      pres.groups = groups
+      pres.song = song
+      pres.meta = songMeta(song)
+      pres.background = { type: 'none' }
+      made.push(pres)
+    } catch (err) {
+      errors.push(`${file.name}: ${errorMessage(err)}`)
+    }
+  }
+  const first = made[0]
+  if (first) {
+    applyChange(made.length === 1 ? 'Import song' : `Import ${made.length} songs`, (d) => {
+      let folderId = rootList(d, 'library').find((id) => d.folders[id]?.name === SONGS_FOLDER)
+      folderId ??= addFolder(d, 'library', SONGS_FOLDER).id
+      for (const pres of made) addPresentation(d, pres, folderId)
+    })
+    ui.set({ treeSelection: { scope: 'library', id: first.id } })
+    ui.openPresentation(first.id)
+  }
+  if (errors.length) {
+    const more = errors.length > 4 ? `\n…and ${errors.length - 4} more` : ''
+    toast.error(made.length ? `Imported ${made.length}, skipped ${errors.length}` : 'No songs imported', errors.slice(0, 4).join('\n') + more)
+  } else if (made.length) toast.success(made.length === 1 ? 'Song imported' : `${made.length} songs imported`, 'Library › Songs')
 }
 
 export async function editSong(presentationId: Id): Promise<void> {
