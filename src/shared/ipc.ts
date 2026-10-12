@@ -274,7 +274,7 @@ export interface BhcfApi {
     status(): Promise<UpdateStatus>
     /** Checks GitHub now and reports problems (background checks run by themselves). */
     check(): Promise<UpdateStatus>
-    /** Windows: restarts and installs the downloaded update. */
+    /** "Update now": Windows downloads it and restarts into it; macOS opens the download. */
     install(): Promise<void>
     /** macOS: opens the new version's download. */
     download(): Promise<void>

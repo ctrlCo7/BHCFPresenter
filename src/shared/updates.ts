@@ -10,10 +10,10 @@ export type UpdateStatus =
   | { state: 'idle' }
   | { state: 'checking' }
   | { state: 'none'; checkedAt: number }
-  /** Newer version found. `downloadUrl`: download it yourself (macOS: unsigned apps cannot self-update) */
-  | { state: 'available'; version: string; downloadUrl?: string }
+  /** Newer version found; waits for "Update now". `downloadUrl`: macOS, where unsigned apps cannot self-update */
+  | { state: 'available'; version: string; notes?: string; downloadUrl?: string }
   | { state: 'downloading'; version: string; percent: number }
-  /** Downloaded; installs when the app closes (or now, on request) */
+  /** Downloaded; restarting installs it */
   | { state: 'ready'; version: string }
   | { state: 'error'; message: string }
 
@@ -27,4 +27,25 @@ export function compareVersions(a: string, b: string): number {
     if (d) return Math.sign(d)
   }
   return 0
+}
+
+/** Release notes as plain text (GitHub gives HTML to the updater, Markdown to the API). */
+export function notesText(notes: unknown): string | undefined {
+  const raw = Array.isArray(notes) ? notes.map((n: { note?: string | null }) => n.note ?? '').join('\n') : typeof notes === 'string' ? notes : ''
+  const text = raw
+    .replace(/<\/(p|li|h\d)>|<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '• ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/^\s*[-*]\s+/gm, '• ')
+    .replace(/[ \t]+$/gm, '')
+    // One bullet per line, without the blank lines HTML leaves between them.
+    .replace(/\n\s*\n(?=• )/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return text ? text.slice(0, 4000) : undefined
 }

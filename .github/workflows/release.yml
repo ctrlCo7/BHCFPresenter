@@ -50,6 +50,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # The tagged commit's message (minus its first line and sign-off lines) becomes the
+      # release notes, which the app shows under "What's new" when it offers the update.
+      - uses: actions/checkout@v4
+      - run: git log -1 --format=%B "$GITHUB_SHA" | tail -n +2 | grep -v -i '^co-authored-by:' | sed '/./,$!d' > notes.md
       - uses: actions/download-artifact@v4
         with:
           path: installers
@@ -57,3 +61,4 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: installers/*
+          body_path: notes.md

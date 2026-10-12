@@ -312,7 +312,7 @@ export function registerIpc({ store, config, outputs, bibles, remote, updates, g
 
   h(IPC.updatesGet, () => updates.current)
   h(IPC.updatesCheck, () => updates.check(true))
-  h(IPC.updatesInstall, () => updates.installNow())
+  h(IPC.updatesInstall, () => updates.update())
   h(IPC.updatesDownload, () => updates.openDownload())
 
   /* ------------------------------ Songs ------------------------------ */

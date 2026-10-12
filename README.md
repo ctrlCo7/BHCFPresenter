@@ -33,7 +33,7 @@ The npm scripts launch Electron through `scripts/electron-vite.mjs`, which clear
 - **Stage display:** set an output to "Stage display" and configure it in Settings → Stage Display.
 - **Timers:** the screen button shows a timer full screen. It replaces the slide, and the next slide, media or logo replaces it, so they never overlap. The palette button (or double-clicking the timer) opens its design in the slide editor: fonts, colours, position, extra text and a background.
 - **Auto-advance and loops:** the loop button on a presentation (or the slide editor's *Presentation playback*) moves slides on by themselves every few seconds and can start again after the last slide, for pre-service announcements. A slide can set its own time or wait for Next. A bar under the Program monitor counts down and can pause it.
-- **Updates:** installed copies check GitHub for new releases. On Windows the update downloads in the background and installs when the app closes (Settings → Updates → *Restart and install* to do it now). On a Mac the app offers the new .dmg to download.
+- **Updates:** installed copies check GitHub for new releases and only ask when there is one: a window shows what changed with **Update now** or **Later** (never while a slide or media is live). Nothing downloads before Update now. On Windows it then downloads, saves the project and restarts into the new version; on a Mac it downloads the new .dmg. The release notes are the release commit's message (after its first line).
 - **Remote:** in Settings → Remote, enable it, then open the address shown on a phone on the same Wi-Fi and enter the PIN.
 
 ## Songs, backgrounds and Bibles

@@ -86,3 +86,13 @@ describe('update versions', () => {
     expect(compareVersions('1.0.1', '1.1.0')).toBe(-1)
   })
 })
+
+describe('update release notes', () => {
+  it('turns GitHub HTML or Markdown into plain text', async () => {
+    const { notesText } = await import('./updates')
+    expect(notesText('<ul>\n<li>Timer screens &amp; loops</li>\n<li>Song import</li>\n</ul>')).toBe('• Timer screens & loops\n• Song import')
+    expect(notesText('- One\n- Two')).toBe('• One\n• Two')
+    expect(notesText('')).toBeUndefined()
+    expect(notesText(null)).toBeUndefined()
+  })
+})
