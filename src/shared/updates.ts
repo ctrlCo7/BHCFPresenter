@@ -17,6 +17,12 @@ export type UpdateStatus =
   | { state: 'ready'; version: string }
   | { state: 'error'; message: string }
 
+/** One release's notes, for "What's new" after an update. */
+export interface ReleaseNote {
+  version: string
+  notes: string
+}
+
 /** Compares "1.2.10" with "v1.2.9" numerically; pre-release suffixes are ignored. */
 export function compareVersions(a: string, b: string): number {
   const parts = (v: string): number[] => v.replace(/^v/i, '').split(/[.-]/).slice(0, 3).map((x) => Number.parseInt(x, 10) || 0)
@@ -51,4 +57,16 @@ export function notesText(notes: unknown): string | undefined {
     .replace(/\n{3,}/g, '\n\n')
     .trim()
   return text ? text.slice(0, 4000) : undefined
+}
+
+/**
+ * "What's new" after an update: the GitHub releases after `since` up to `current`, newest first
+ * (only `current` when `since` is unknown, e.g. a fresh install).
+ */
+export function notesSince(releases: { tag_name?: string; body?: string | null; draft?: boolean }[], current: string, since: string | null): ReleaseNote[] {
+  return releases
+    .filter((r) => !r.draft && r.tag_name)
+    .map((r) => ({ version: (r.tag_name as string).replace(/^v/i, ''), notes: notesText(r.body) ?? '' }))
+    .filter((r) => compareVersions(r.version, current) <= 0 && (since ? compareVersions(r.version, since) > 0 : compareVersions(r.version, current) === 0))
+    .sort((a, b) => compareVersions(b.version, a.version))
 }

@@ -6,7 +6,7 @@
  */
 import type { BibleBook, BibleInfo, Verse } from './bible'
 import type { SongFile } from './songImport'
-import type { UpdateStatus } from './updates'
+import type { ReleaseNote, UpdateStatus } from './updates'
 import type { LiveState, OutputConfig, OutputStatus } from './live'
 import type { MediaAsset, Presentation, Project } from './model/types'
 
@@ -181,6 +181,7 @@ export const IPC = {
   updatesInstall: 'updates:install',
   updatesDownload: 'updates:download',
   updatesStatus: 'updates:status',
+  updatesReleaseNotes: 'updates:release-notes',
   remoteGetStatus: 'remote:get-status',
   remoteSetConfig: 'remote:set-config',
   remoteSnapshot: 'remote:snapshot',
@@ -279,6 +280,8 @@ export interface BhcfApi {
     /** macOS: opens the new version's download. */
     download(): Promise<void>
     onStatus(handler: (s: UpdateStatus) => void): Unsubscribe
+    /** Release notes after `since` up to this version (null: offline). */
+    releaseNotes(since: string | null): Promise<ReleaseNote[] | null>
   }
   songs: {
     /** Asks for song files and reads them; null when cancelled. */

@@ -151,7 +151,10 @@ export function SongEditor({
           <textarea className="input" value={text} onChange={(e) => onText(e.target.value)} placeholder={PLACEHOLDER} spellCheck onKeyDown={(e) => e.stopPropagation()} />
         </div>
         <div className="song-side">
-          <div className="field-label">Sections — click to add another time</div>
+          <div className="song-group-head">
+            <span className="field-label">Sections</span>
+            <span className="muted">click to add again</span>
+          </div>
           <div className="song-sections">
             {sections.length === 0 && <span className="muted">Appear when you paste lyrics.</span>}
             {sections.map((s) => (
@@ -160,8 +163,9 @@ export function SongEditor({
               </button>
             ))}
           </div>
-          <div className="field-label song-arr-title">
-            Order {manualOrder ? <span className="muted">(arranged by hand)</span> : <span className="muted">(from the lyrics)</span>}
+          <div className="song-group-head">
+            <span className="field-label">Order</span>
+            <span className="muted">{order.length ? `${order.length} part${order.length === 1 ? '' : 's'}, ${manualOrder ? 'arranged by hand' : 'from the lyrics'}` : ''}</span>
             {manualOrder && (
               <button className="link" onClick={() => setManualOrder(null)}>
                 <RotateCcw size={11} /> use lyrics order
@@ -169,53 +173,68 @@ export function SongEditor({
             )}
           </div>
           <div className="song-arrangement">
+            {order.length === 0 && <span className="muted">The song plays in this order.</span>}
             {order.map((id, i) => {
               const s = byId.get(id)
               if (!s) return null
               return (
                 <div key={`${id}-${i}`} className="song-arr-item" style={{ ['--chip' as string]: sectionColor(s.name) }}>
+                  <span className="song-arr-num">{i + 1}</span>
                   <span className="song-arr-name">{s.name}</span>
-                  <button className="icon-btn" title="Earlier" onClick={() => move(i, -1)}>
-                    <ArrowLeft size={12} />
-                  </button>
-                  <button className="icon-btn" title="Later" onClick={() => move(i, 1)}>
-                    <ArrowRight size={12} />
-                  </button>
-                  <button className="icon-btn" title="Remove" onClick={() => setOrder(order.filter((_, j) => j !== i))}>
-                    <X size={12} />
-                  </button>
+                  {/* Shown on hover / keyboard focus, so a long order stays readable. */}
+                  <span className="song-arr-tools">
+                    <button className="icon-btn" title="Earlier" onClick={() => move(i, -1)}>
+                      <ArrowLeft size={12} />
+                    </button>
+                    <button className="icon-btn" title="Later" onClick={() => move(i, 1)}>
+                      <ArrowRight size={12} />
+                    </button>
+                    <button className="icon-btn" title="Remove" onClick={() => setOrder(order.filter((_, j) => j !== i))}>
+                      <X size={12} />
+                    </button>
+                  </span>
                 </div>
               )
             })}
           </div>
-          <Row label="Lines / slide">
-            <Select
-              value={lines}
-              options={[{ value: String(AUTO_LINES), label: 'Auto' }, ...['1', '2', '3', '4', '5', '6', '8'].map((v) => ({ value: v, label: v }))]}
-              onChange={setLines}
-              width={90}
-            />
-          </Row>
-          <Row label="Theme">
-            <Select
-              value={theme}
-              options={[...(initial.sections.length ? [{ value: 'keep', label: 'Keep current look' }] : []), ...LYRIC_THEMES.map((t) => ({ value: t.id, label: t.name }))]}
-              onChange={setTheme}
-            />
-          </Row>
-          <Row label="Background">
-            <Select
-              value={bg}
-              options={[
-                { value: 'transparent', label: 'Transparent (show live video background)' },
-                { value: 'default', label: 'Project default' },
-                ...images.map((m) => ({ value: m.id, label: `${m.kind === 'video' ? 'Video' : 'Image'}: ${m.name}` }))
-              ]}
-              onChange={setBg}
-            />
-          </Row>
-          <div className="field-label">
-            Preview — {preview.length} slide{preview.length === 1 ? '' : 's'}
+          <div className="song-settings">
+            <label className="song-setting">
+              <span className="field-label">Lines / slide</span>
+              <Select
+                value={lines}
+                options={[{ value: String(AUTO_LINES), label: 'Auto' }, ...['1', '2', '3', '4', '5', '6', '8'].map((v) => ({ value: v, label: v }))]}
+                onChange={setLines}
+                width="100%"
+              />
+            </label>
+            <label className="song-setting">
+              <span className="field-label">Theme</span>
+              <Select
+                value={theme}
+                options={[...(initial.sections.length ? [{ value: 'keep', label: 'Keep current look' }] : []), ...LYRIC_THEMES.map((t) => ({ value: t.id, label: t.name }))]}
+                onChange={setTheme}
+                width="100%"
+              />
+            </label>
+            <label className="song-setting wide">
+              <span className="field-label">Background</span>
+              <Select
+                value={bg}
+                options={[
+                  { value: 'transparent', label: 'Transparent (show live video background)' },
+                  { value: 'default', label: 'Project default' },
+                  ...images.map((m) => ({ value: m.id, label: `${m.kind === 'video' ? 'Video' : 'Image'}: ${m.name}` }))
+                ]}
+                onChange={setBg}
+                width="100%"
+              />
+            </label>
+          </div>
+          <div className="song-group-head">
+            <span className="field-label">Preview</span>
+            <span className="muted">
+              {preview.length} slide{preview.length === 1 ? '' : 's'}
+            </span>
           </div>
           <div className="song-preview">
             {preview.map((p, i) => (

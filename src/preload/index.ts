@@ -90,7 +90,8 @@ const api: BhcfApi = {
     check: () => call(IPC.updatesCheck),
     install: () => call(IPC.updatesInstall),
     download: () => call(IPC.updatesDownload),
-    onStatus: (handler) => on(IPC.updatesStatus, handler)
+    onStatus: (handler) => on(IPC.updatesStatus, handler),
+    releaseNotes: (since) => call(IPC.updatesReleaseNotes, since)
   },
   songs: {
     importFiles: () => call(IPC.songsImport)

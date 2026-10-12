@@ -9,7 +9,7 @@
  */
 import { app, net, shell } from 'electron'
 import { autoUpdater } from 'electron-updater'
-import { compareVersions, notesText, RELEASES_URL, UPDATE_REPO, type UpdateStatus } from '../../shared/updates'
+import { compareVersions, notesSince, notesText, RELEASES_URL, UPDATE_REPO, type ReleaseNote, type UpdateStatus } from '../../shared/updates'
 import { log } from '../util/log'
 
 const FIRST_CHECK_MS = 20_000
@@ -117,6 +117,25 @@ export class UpdateService {
       // Download errors after a successful check (the check itself rejects and is handled there).
       if (this.status.state === 'downloading') this.set({ state: 'error', message: friendlyError(err.message) })
     })
+  }
+
+  /**
+   * Notes of the releases after `since` up to this version, newest first (only this version when
+   * `since` is null). Null when GitHub cannot be reached, so the app can try again next time.
+   */
+  async releaseNotesSince(since: string | null): Promise<ReleaseNote[] | null> {
+    try {
+      const res = await net.fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases?per_page=30`, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'BHCF-Presenter' } })
+      if (!res.ok) throw new Error(`GitHub answered ${res.status}`)
+      const releases = (await res.json()) as { tag_name?: string; body?: string; draft?: boolean }[]
+      const current = app.getVersion()
+      const notes = notesSince(releases, current, since)
+      log('info', `What's new: ${notes.map((n) => n.version).join(', ') || 'no notes'} (last used ${since ?? 'none'})`)
+      return notes
+    } catch (err) {
+      log('warn', `Could not load release notes: ${firstLine(err instanceof Error ? err.message : String(err))}`)
+      return null
+    }
   }
 
   private async checkGitHub(): Promise<void> {

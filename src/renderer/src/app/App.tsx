@@ -17,7 +17,7 @@ import { Workspace } from '../features/shell/Workspace'
 import { live } from '../live/liveStore'
 import { startLivePublisher } from '../live/livePublisher'
 import { startRemoteBridge } from '../live/remoteBridge'
-import { startUpdateListener } from '../services/updates'
+import { showWhatsNew, startUpdateListener } from '../services/updates'
 import { startAutosave } from '../services/autosave'
 import { installShortcutDispatcher, runCommand } from '../services/commands'
 import { openLastProject } from '../services/projectActions'
@@ -50,7 +50,10 @@ export function App(): ReactElement {
       if (i.isDev) Object.assign(window, { __bhcfDebug: { project: useProjectStore, ui: useUiStore, live, runCommand, importMedia } })
     })
     void loadTheme()
-    void openLastProject().finally(() => setBooted(true))
+    void openLastProject().finally(() => {
+      setBooted(true)
+      void showWhatsNew().catch(() => undefined)
+    })
     const onError = (e: ErrorEvent): void => window.bhcf.app.log('error', `${e.message} @ ${e.filename}:${e.lineno}`)
     const onRejection = (e: PromiseRejectionEvent): void => window.bhcf.app.log('error', `Unhandled rejection: ${String(e.reason)}`)
     // Block the browser's default file-drop navigation anywhere outside a drop zone.

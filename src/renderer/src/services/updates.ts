@@ -5,8 +5,9 @@
  */
 import { createElement } from 'react'
 import { create } from 'zustand'
-import type { UpdateStatus } from '@shared/updates'
+import { compareVersions, type UpdateStatus } from '@shared/updates'
 import { UpdatePrompt } from '../features/settings/UpdatePrompt'
+import { WhatsNew } from '../features/settings/WhatsNew'
 import { useLiveStore } from '../live/liveStore'
 import { dialogs, errorMessage, toast } from '../store/overlayStore'
 import { useUiStore } from '../store/uiStore'
@@ -60,4 +61,42 @@ export function startUpdateListener(): () => void {
     stopLive()
     stopUi()
   }
+}
+
+/* ----------------------------- What's new ----------------------------- */
+
+const SEEN_KEY = 'bhcf-seen-version'
+
+function readSeen(): string | null {
+  try {
+    return localStorage.getItem(SEEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+function markSeen(version: string): void {
+  try {
+    localStorage.setItem(SEEN_KEY, version)
+  } catch {
+    // Storage unavailable: "What's new" may show again next time.
+  }
+}
+
+/**
+ * After an update, the first start of the new version shows what changed in every release since
+ * the version last used on this computer. When GitHub cannot be reached it tries again next start.
+ */
+export async function showWhatsNew(): Promise<void> {
+  const info = await window.bhcf.app.info()
+  if (info.isDev) return
+  const seen = readSeen()
+  if (seen === info.version) return
+  if (seen && compareVersions(seen, info.version) > 0) return markSeen(info.version) // went back to an older version
+  const releases = await window.bhcf.updates.releaseNotes(seen).catch(() => null)
+  if (releases === null) return
+  markSeen(info.version)
+  const withNotes = releases.filter((r) => r.notes)
+  if (withNotes.length === 0) return
+  await dialogs.custom<null>({ title: "What's new", width: 520, render: (close) => createElement(WhatsNew, { version: info.version, releases: withNotes, onClose: close }) })
 }

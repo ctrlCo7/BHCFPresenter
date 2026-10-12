@@ -314,6 +314,7 @@ export function registerIpc({ store, config, outputs, bibles, remote, updates, g
   h(IPC.updatesCheck, () => updates.check(true))
   h(IPC.updatesInstall, () => updates.update())
   h(IPC.updatesDownload, () => updates.openDownload())
+  h(IPC.updatesReleaseNotes, (_e, since: unknown) => updates.releaseNotesSince(typeof since === 'string' && /^\d+\.\d+\.\d+/.test(since) ? since : null))
 
   /* ------------------------------ Songs ------------------------------ */
 

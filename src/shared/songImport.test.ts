@@ -98,3 +98,14 @@ describe('update release notes', () => {
     expect(notesText(null)).toBeUndefined()
   })
 })
+
+describe("what's new after an update", () => {
+  it('lists every release since the version last used, newest first', async () => {
+    const { notesSince } = await import('./updates')
+    const releases = ['v1.0.6', 'v1.0.5', 'v1.0.4', 'v1.0.3', 'v1.0.2', 'v1.0.7'].map((t) => ({ tag_name: t, body: `- Notes for ${t}` }))
+    expect(notesSince(releases, '1.0.6', '1.0.3').map((r) => r.version)).toEqual(['1.0.6', '1.0.5', '1.0.4'])
+    expect(notesSince(releases, '1.0.6', null).map((r) => r.version)).toEqual(['1.0.6'])
+    expect(notesSince(releases, '1.0.6', '1.0.6')).toEqual([])
+    expect(notesSince(releases, '1.0.4', '1.0.3')[0]).toEqual({ version: '1.0.4', notes: '• Notes for v1.0.4' })
+  })
+})
