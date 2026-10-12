@@ -1,9 +1,10 @@
 /**
  * Templates → My Backgrounds: the videos and images in a folder on this computer
- * (default Documents\Backgrounds). Previews stream straight from the folder; using one copies
- * it into the project (once) so the project stays self-contained, then plays it.
+ * (default Documents\Backgrounds), subfolders included. Add Videos… copies picked files into the
+ * folder. Previews stream straight from the folder; using one copies it into the project (once) so
+ * the project stays self-contained, then plays it.
  */
-import { Clapperboard, FolderOpen, FolderSearch, Loader2, Play, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Clapperboard, FilePlus2, FolderOpen, FolderSearch, Loader2, Play, RefreshCw } from 'lucide-react'
 import { useEffect, useState, type ReactElement } from 'react'
 import type { LibraryFile, LibraryListing } from '@shared/ipc'
 import { libraryUrl } from '@shared/media'
@@ -13,9 +14,15 @@ import { errorMessage, toast } from '../../store/overlayStore'
 import { useProjectStore } from '../../store/projectStore'
 import { addNewMedia, formatBytes } from '../media/mediaActions'
 
+/** "Worship/Clouds.mp4" → "Clouds.mp4". */
+const baseName = (name: string): string => name.slice(name.lastIndexOf('/') + 1)
+
+/** "Worship/Clouds.mp4" → "Worship"; null at the top of the folder. */
+export const subfolderOf = (name: string): string | null => (name.includes('/') ? name.slice(0, name.lastIndexOf('/')) : null)
+
 /** "7077358-uhd_4096_2160_30fps.mp4" → { title: "7077358", quality: "4K" }. */
 export function describeLibraryFile(file: LibraryFile): { title: string; quality: string | null } {
-  const base = file.name.replace(/\.[^.]+$/, '')
+  const base = baseName(file.name).replace(/\.[^.]+$/, '')
   const m = /[-_ ]?(uhd|hd|sd)?[_ ]?(\d{3,4})[_x](\d{3,4})(?:[_ ](\d{2,3})fps)?$/i.exec(base)
   const height = m ? Number(m[3]) : null
   const quality = height ? (height >= 2000 ? '4K' : height >= 1000 ? 'HD 1080p' : `${height}p`) : null
@@ -49,6 +56,7 @@ function FileCard({ file, busy, onUse }: { file: LibraryFile; busy: boolean; onU
         {quality && <span className="tpl-cat-tag">{quality}</span>}
       </div>
       <div className="muted tpl-desc">
+        {subfolderOf(file.name) && <>{subfolderOf(file.name)} · </>}
         {file.kind === 'video' ? 'Video' : 'Image'} · {formatBytes(file.sizeBytes)}
       </div>
       <div className="tpl-actions">
@@ -66,6 +74,7 @@ function FileCard({ file, busy, onUse }: { file: LibraryFile; busy: boolean; onU
 export function FolderBackgroundsTab(): ReactElement {
   const [listing, setListing] = useState<LibraryListing | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
   const media = useProjectStore((s) => s.project?.media)
 
   const refresh = (): void => {
@@ -78,7 +87,7 @@ export function FolderBackgroundsTab(): ReactElement {
 
   /** The project copy of a folder file, if it was used before (same original name and size). */
   const existing = (file: LibraryFile): Id | null =>
-    Object.values(media ?? {}).find((a) => a.originalName === file.name && a.sizeBytes === file.sizeBytes)?.id ?? null
+    Object.values(media ?? {}).find((a) => a.originalName === baseName(file.name) &&a.sizeBytes === file.sizeBytes)?.id ?? null
 
   const use = async (file: LibraryFile, mode: 'background' | 'full'): Promise<void> => {
     if (busy) return
@@ -102,6 +111,31 @@ export function FolderBackgroundsTab(): ReactElement {
     toast.success(mode === 'background' ? 'Playing behind your lyrics' : 'Playing full screen', `${describeLibraryFile(file).title} is in Media › P&W Backgrounds too.`)
   }
 
+  const openFolder = (): void => {
+    void window.bhcf.library.openDir().catch((err: unknown) => toast.error('Could not open the folder', errorMessage(err)))
+  }
+
+  const addFiles = (): void => {
+    if (adding) return
+    setAdding(true)
+    void window.bhcf.library
+      .addFiles()
+      .then((res) => {
+        if (!res) return
+        setListing(res.listing)
+        if (res.added > 0) toast.success(`Added ${res.added} background${res.added === 1 ? '' : 's'}`, 'Hover to preview, then click Use as Background.')
+        if (res.skipped.length > 0) {
+          const detail = res.skipped
+            .slice(0, 4)
+            .map((x) => `${x.name}: ${x.reason}`)
+            .join('\n')
+          toast.warning(`Skipped ${res.skipped.length} file${res.skipped.length === 1 ? '' : 's'}`, detail)
+        }
+      })
+      .catch((err: unknown) => toast.error('Could not add the files', errorMessage(err)))
+      .finally(() => setAdding(false))
+  }
+
   const choose = (): void => {
     void window.bhcf.library
       .chooseDir()
@@ -120,7 +154,10 @@ export function FolderBackgroundsTab(): ReactElement {
         <button className="btn" onClick={refresh} title="Look for new files">
           <RefreshCw size={13} /> Refresh
         </button>
-        <button className="btn" onClick={() => void window.bhcf.library.openDir()}>
+        <button className="btn primary" onClick={addFiles} disabled={adding} title="Pick video or image files and copy them into this folder">
+          {adding ? <Loader2 size={13} className="spin" /> : <FilePlus2 size={13} />} {adding ? 'Copying…' : 'Add Videos…'}
+        </button>
+        <button className="btn" onClick={openFolder}>
           <FolderOpen size={13} /> Open Folder
         </button>
         <button className="btn" onClick={choose}>
@@ -128,10 +165,25 @@ export function FolderBackgroundsTab(): ReactElement {
         </button>
       </div>
       <p className="muted tpl-hint">
-        Your own background videos and images. Put files in this folder (MP4, MOV, WebM, JPG, PNG) and click Refresh. Hover to preview; the first time you use one it is copied into the project so it plays even without this folder.
+        Your own background videos and images (MP4, MOV, WebM, JPG, PNG), subfolders included. Click <b>Add Videos…</b> to pick files, or <b>Change Folder…</b> to show
+        a folder you already have. Hover to preview; the first time you use one it is copied into the project so it plays even without this folder.
       </p>
-      {listing && !listing.exists && <p className="tpl-hint">This folder does not exist yet. Click Open Folder to create it, then add your backgrounds.</p>}
-      {listing?.exists && listing.files.length === 0 && <p className="tpl-hint">No videos or images in this folder yet.</p>}
+      {listing?.error && (
+        <p className="tpl-hint tpl-warning">
+          <AlertTriangle size={14} /> {listing.error}
+        </p>
+      )}
+      {listing && !listing.exists && <p className="tpl-hint">This folder does not exist yet. Click Add Videos… to pick your backgrounds, or Change Folder… to use a folder you already have.</p>}
+      {listing?.exists && !listing.error && listing.files.length === 0 && (
+        <p className="tpl-hint">No videos or images in this folder yet. Click Add Videos… to pick some, or Change Folder… if your videos are in another folder.</p>
+      )}
+      {listing && listing.unsupported.count > 0 && (
+        <p className="tpl-hint tpl-warning">
+          <AlertTriangle size={14} />
+          {listing.unsupported.count} video{listing.unsupported.count === 1 ? '' : 's'} can't be played in this format ({listing.unsupported.examples.join(', ')}
+          {listing.unsupported.count > listing.unsupported.examples.length ? ', …' : ''}). Convert them to MP4 (H.264), for example with HandBrake, then click Refresh.
+        </p>
+      )}
       <div className="tpl-grid">
         {listing?.files.map((f) => (
           <FileCard key={f.name} file={f} busy={busy === f.name} onUse={(file, mode) => void use(file, mode)} />

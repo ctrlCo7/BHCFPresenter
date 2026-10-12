@@ -48,6 +48,20 @@
   margin: 8px 0 12px;
   line-height: 1.5;
 }
+.tpl-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  color: var(--text-1);
+}
+.tpl-warning svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--warn);
+}
 .tpl-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

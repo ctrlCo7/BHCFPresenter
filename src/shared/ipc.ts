@@ -114,6 +114,7 @@ export interface RemoteSnapshot {
 
 /** A video or image in the backgrounds folder on this computer. */
 export interface LibraryFile {
+  /** Path relative to the folder, with "/" between subfolders ("Worship/Clouds.mp4") */
   name: string
   kind: 'video' | 'image'
   sizeBytes: number
@@ -124,6 +125,16 @@ export interface LibraryListing {
   dir: string
   exists: boolean
   files: LibraryFile[]
+  /** Why the folder could not be read (e.g. blocked by macOS privacy settings), null when fine */
+  error: string | null
+  /** Video files in a format the app cannot play (MKV, AVI…), with a few names to show */
+  unsupported: { count: number; examples: string[] }
+}
+
+export interface LibraryAddResult {
+  listing: LibraryListing
+  added: number
+  skipped: { name: string; reason: string }[]
 }
 
 /** Channel names, kept in one place to avoid typos across processes. */
@@ -156,6 +167,7 @@ export const IPC = {
   libraryChooseDir: 'library:choose-dir',
   libraryOpenDir: 'library:open-dir',
   libraryImport: 'library:import',
+  libraryAddFiles: 'library:add-files',
   mediaListFiles: 'media:list-files',
   mediaDeleteFiles: 'media:delete-files',
   displaysList: 'displays:list',
@@ -245,6 +257,8 @@ export interface BhcfApi {
     /** Lets the user pick another folder; resolves the new listing, or null if cancelled. */
     chooseDir(): Promise<LibraryListing | null>
     openDir(): Promise<void>
+    /** Lets the user pick video/image files and copies them into the folder; null if cancelled. */
+    addFiles(): Promise<LibraryAddResult | null>
     /** Copies a file from the folder into the open project. */
     import(name: string): Promise<MediaAsset>
   }
