@@ -104,6 +104,10 @@ button.tpl-card:disabled {
   height: 100%;
   display: block;
 }
+.tpl-hover-video {
+  position: absolute;
+  inset: 0;
+}
 .tpl-name {
   display: flex;
   align-items: center;

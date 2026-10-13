@@ -13,7 +13,8 @@ import { fittedFontSize } from './textFit'
 import './render.css'
 
 /**
- * thumbnail: static frames; editor: static, but full quality; preview: muted playback;
+ * thumbnail: static frames; editor: static, but full quality; preview: static too (every playing
+ * video holds a hardware decoder, and the Program monitor already shows the motion);
  * output: playback with sound where allowed.
  */
 export type RenderMode = 'thumbnail' | 'editor' | 'preview' | 'output'
@@ -50,7 +51,7 @@ function VideoView({
   mode: RenderMode
   style?: CSSProperties
 }): ReactElement {
-  const plays = mode === 'preview' || mode === 'output'
+  const plays = mode === 'output'
   if (!plays && asset.thumbnail) {
     return <img className="sr-fill" style={{ objectFit: fit as CSSProperties['objectFit'], ...style }} src={thumbnailUrl(asset.thumbnail)} alt="" draggable={false} decoding="async" />
   }

@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays, CalendarPlus, Sparkles, Clapperboard, Film, FolderInput, Image as ImageIcon, ImagePlus, ListMinus, ListPlus, Music, Pencil, Play, Trash2, Upload, Wallpaper } from 'lucide-react'
+import { BadgeCheck, CalendarDays, CalendarPlus, Sparkles, Clapperboard, Film, FolderInput, Image as ImageIcon, ImagePlus, ListMinus, ListPlus, Music, Pencil, Play, Repeat, Trash2, Upload, Wallpaper } from 'lucide-react'
 import { memo, useMemo, useRef, useState, type ReactElement } from 'react'
 import { mediaUrl, thumbnailUrl } from '@shared/media'
 import { mediaPlaylistAccepts, type Id, type MediaAsset, type MediaPlaylist, type Project } from '@shared/model/types'
@@ -24,7 +24,7 @@ import {
 } from './mediaPlaylistActions'
 import { openTemplates } from '../backgrounds/TemplatesDialog'
 import { patchSlides } from '../presentation/slideActions'
-import { playBackground, playMedia } from '../../live/liveActions'
+import { mediaSetLoop, playBackground, playMedia } from '../../live/liveActions'
 import { useLiveStore } from '../../live/liveStore'
 import { deleteMedia, formatBytes, formatDuration, importMedia, renameMedia, setAsLogo } from './mediaActions'
 import { activeProfile } from '../../engine/tree'
@@ -39,18 +39,22 @@ const MediaTile = memo(function MediaTile({
   asset,
   selected,
   live,
+  looping,
   isBackground,
   dropBefore,
   onMouseDown,
   onContext,
   onDragStart,
   onPlay,
+  onLoop,
   onDragOverTile,
   onDropTile
 }: {
   asset: MediaAsset
   selected: boolean
   live: boolean
+  /** This item is the live cue and repeats */
+  looping: boolean
   isBackground: boolean
   /** Reorder indicator while dragging within a playlist */
   dropBefore: boolean
@@ -58,6 +62,7 @@ const MediaTile = memo(function MediaTile({
   onContext: (e: React.MouseEvent, asset: MediaAsset) => void
   onDragStart: (e: React.DragEvent, asset: MediaAsset) => void
   onPlay: (asset: MediaAsset) => void
+  onLoop: (asset: MediaAsset) => void
   onDragOverTile: (e: React.DragEvent, asset: MediaAsset) => void
   onDropTile: (e: React.DragEvent, asset: MediaAsset) => void
 }): ReactElement {
@@ -91,6 +96,17 @@ const MediaTile = memo(function MediaTile({
           <Icon size={11} />
           {asset.durationSec !== null && <span>{formatDuration(asset.durationSec)}</span>}
         </span>
+        {asset.kind !== 'image' && (
+          <button
+            className={`media-action media-loop${looping ? ' on' : ''}`}
+            title={looping ? 'Looping. Click to play to the end and stop' : live ? 'Loop: repeat until you stop it' : 'Play on loop: repeat until you stop it'}
+            aria-pressed={looping}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => onLoop(asset)}
+          >
+            <Repeat size={12} /> Loop
+          </button>
+        )}
       </div>
       <div className="media-name">{asset.name}</div>
       <div className="media-actions" onMouseDown={(e) => e.stopPropagation()}>
@@ -118,6 +134,7 @@ export function MediaBin(): ReactElement {
   const activePresentationId = useUiStore((s) => s.activePresentationId)
   const selectedSlideIds = useUiStore((s) => s.selectedSlideIds)
   const liveMediaId = useLiveStore((s) => s.media?.mediaId ?? null)
+  const liveLoop = useLiveStore((s) => s.media?.loop ?? false)
   const bgMediaId = useLiveStore((s) => s.bgMedia?.mediaId ?? null)
   const logoId = project.settings.logoMediaId
   const mediaPlaylistId = useUiStore((s) => s.mediaPlaylistId)
@@ -149,6 +166,12 @@ export function MediaBin(): ReactElement {
   const onPlay = useStableCallback((asset: MediaAsset) => {
     // From a playlist, Next / Previous continue through it.
     playMedia(asset.id, playlist ? { playlistId: playlist.id, entryId: asset.id } : null)
+  })
+
+  /** On the live item, turns looping on or off; on any other item, plays it looping. */
+  const onLoop = useStableCallback((asset: MediaAsset) => {
+    if (liveMediaId === asset.id) mediaSetLoop(!liveLoop)
+    else playMedia(asset.id, playlist ? { playlistId: playlist.id, entryId: asset.id } : null, true)
   })
 
   /** Ids being dragged when they can be reordered within the shown playlist. */
@@ -209,6 +232,9 @@ export function MediaBin(): ReactElement {
     const canBg = ids.length === 1 && asset.kind !== 'audio' && !!activePresentationId && selectedSlideIds.length > 0
     const items: MenuItem[] = [
       { label: asset.kind === 'audio' ? 'Play Audio' : 'Play Full Screen', icon: <Play size={14} />, shortcut: 'Double-click', onSelect: () => onPlay(asset) },
+      ...(asset.kind !== 'image'
+        ? [{ label: liveMediaId === asset.id && liveLoop ? 'Stop Looping' : 'Play on Loop', icon: <Repeat size={14} />, onSelect: () => onLoop(asset) }]
+        : []),
       ...(asset.kind !== 'audio'
         ? [{ label: 'Use as Live Background (behind lyrics)', icon: <Clapperboard size={14} />, onSelect: () => playBackground(asset.id) }]
         : []),
@@ -398,12 +424,14 @@ export function MediaBin(): ReactElement {
                 asset={a}
                 selected={selected.has(a.id)}
                 live={liveMediaId === a.id}
+                looping={liveMediaId === a.id && liveLoop}
                 isBackground={bgMediaId === a.id}
                 dropBefore={reorderBefore === a.id}
                 onMouseDown={onMouseDown}
                 onContext={onContext}
                 onDragStart={onDragStart}
                 onPlay={onPlay}
+                onLoop={onLoop}
                 onDragOverTile={onDragOverTile}
                 onDropTile={onDropTile}
               />

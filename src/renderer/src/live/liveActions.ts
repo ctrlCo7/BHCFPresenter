@@ -173,7 +173,7 @@ export function toggleLogo(): void {
 
 let cueSeq = 0
 
-export function playMedia(mediaId: Id, context: PlaylistContext | null = null): void {
+export function playMedia(mediaId: Id, context: PlaylistContext | null = null, loop = false): void {
   const asset = project()?.media[mediaId]
   if (!asset) return
   live.set((s) => ({
@@ -183,7 +183,7 @@ export function playMedia(mediaId: Id, context: PlaylistContext | null = null): 
       playing: asset.kind !== 'image',
       anchorPos: 0,
       anchorAt: Date.now(),
-      loop: false,
+      loop,
       volume: s.media?.volume ?? 1,
       muted: false,
       fit: 'contain'

@@ -5,14 +5,14 @@
  * the project stays self-contained, then plays it.
  */
 import { AlertTriangle, Clapperboard, FilePlus2, FolderOpen, FolderSearch, Loader2, Play, RefreshCw } from 'lucide-react'
-import { useEffect, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { LibraryFile, LibraryListing } from '@shared/ipc'
 import { libraryUrl } from '@shared/media'
 import type { Id } from '@shared/model/types'
 import { playBackground, playMedia } from '../../live/liveActions'
 import { errorMessage, toast } from '../../store/overlayStore'
 import { useProjectStore } from '../../store/projectStore'
-import { addNewMedia, formatBytes } from '../media/mediaActions'
+import { addNewMedia, captureVideoFrame, formatBytes } from '../media/mediaActions'
 
 /** "Worship/Clouds.mp4" → "Clouds.mp4". */
 const baseName = (name: string): string => name.slice(name.lastIndexOf('/') + 1)
@@ -30,20 +30,57 @@ export function describeLibraryFile(file: LibraryFile): { title: string; quality
   return { title, quality }
 }
 
+/**
+ * Still frames for the video cards, captured one at a time as cards scroll into view and kept
+ * for the session. A card only loads its video while hovered: every loaded video holds a
+ * hardware decoder, and a dozen 4K ones at once made the whole app stutter.
+ */
+const posters = new Map<string, string>()
+let posterQueue: Promise<unknown> = Promise.resolve()
+
+function usePoster(file: LibraryFile, visible: boolean): string | null {
+  const key = `${file.name}|${file.sizeBytes}`
+  const [poster, setPoster] = useState(() => posters.get(key) ?? null)
+  useEffect(() => {
+    if (file.kind !== 'video' || !visible || poster) return
+    let cancelled = false
+    posterQueue = posterQueue.then(async () => {
+      if (cancelled) return
+      const url = posters.get(key) ?? (await captureVideoFrame(libraryUrl(file.name), null, 400).catch(() => null))
+      if (url) posters.set(key, url)
+      if (!cancelled) setPoster(url)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [file.kind, file.name, key, visible, poster])
+  return poster
+}
+
 function FileCard({ file, busy, onUse }: { file: LibraryFile; busy: boolean; onUse: (file: LibraryFile, mode: 'background' | 'full') => void }): ReactElement {
   const { title, quality } = describeLibraryFile(file)
   const src = libraryUrl(file.name)
+  const ref = useRef<HTMLDivElement>(null)
+  const [visible, setVisible] = useState(false)
+  const [hover, setHover] = useState(false)
+  const poster = usePoster(file, visible)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || visible) return
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && setVisible(true), { rootMargin: '200px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [visible])
   return (
     <div className="tpl-card">
-      <div
-        className="tpl-preview"
-        onMouseEnter={(e) => void e.currentTarget.querySelector('video')?.play().catch(() => undefined)}
-        onMouseLeave={(e) => e.currentTarget.querySelector('video')?.pause()}
-      >
+      <div ref={ref} className="tpl-preview" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         {file.kind === 'video' ? (
-          <video className="tpl-canvas" src={`${src}#t=1`} muted loop playsInline preload="metadata" style={{ objectFit: 'cover' }} />
+          <>
+            {poster && <img className="tpl-canvas" src={poster} alt="" style={{ objectFit: 'cover' }} />}
+            {hover && <video className="tpl-canvas tpl-hover-video" src={src} muted loop autoPlay playsInline style={{ objectFit: 'cover' }} />}
+          </>
         ) : (
-          <img className="tpl-canvas" src={src} alt="" loading="lazy" style={{ objectFit: 'cover' }} />
+          <img className="tpl-canvas" src={src} alt="" loading="lazy" decoding="async" style={{ objectFit: 'cover' }} />
         )}
         {busy && (
           <div className="tpl-busy">
@@ -168,6 +205,11 @@ export function FolderBackgroundsTab(): ReactElement {
         Your own background videos and images (MP4, MOV, WebM, JPG, PNG), subfolders included. Click <b>Add Videos…</b> to pick files, or <b>Change Folder…</b> to show
         a folder you already have. Hover to preview; the first time you use one it is copied into the project so it plays even without this folder.
       </p>
+      {listing?.files.some((f) => describeLibraryFile(f).quality === '4K') && (
+        <p className="muted tpl-hint">
+          Tip: 4K videos take a lot of work to play on a laptop and look no sharper on a 1080p projector. If playback stutters, use the HD 1080p version of the video instead.
+        </p>
+      )}
       {listing?.error && (
         <p className="tpl-hint tpl-warning">
           <AlertTriangle size={14} /> {listing.error}

@@ -162,6 +162,18 @@
   background: var(--pill-bg-hover);
   color: var(--accent-strong);
 }
+.media-loop {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.media-tile:hover .media-loop,
+.media-tile.selected .media-loop,
+.media-loop.on {
+  opacity: 1;
+}
 .media-action.on {
   background: var(--accent);
   color: #fff;

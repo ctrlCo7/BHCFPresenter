@@ -104,38 +104,52 @@ async function probeAndStore(asset: MediaAsset): Promise<void> {
 }
 
 /**
+ * A JPEG data URL of one frame about 1 s into a video (earlier for very short clips). The video
+ * is unloaded straight after, so no decoder stays busy with it.
+ */
+export function captureVideoFrame(src: string, duration: number | null = null, width = 480): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const video = document.createElement('video')
+    video.muted = true
+    video.preload = 'auto'
+    video.crossOrigin = 'anonymous'
+    const release = (): void => {
+      window.clearTimeout(timeout)
+      video.removeAttribute('src')
+      video.load()
+    }
+    const timeout = window.setTimeout(() => {
+      release()
+      reject(new Error('timeout'))
+    }, 20000)
+    video.onloadeddata = () => {
+      const d = duration ?? (Number.isFinite(video.duration) ? video.duration : 2)
+      video.currentTime = Math.min(1, d / 2)
+    }
+    video.onseeked = () => {
+      const h = Math.round((width * (video.videoHeight || 9)) / (video.videoWidth || 16))
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = h
+      canvas.getContext('2d')?.drawImage(video, 0, 0, width, h)
+      release()
+      resolve(canvas.toDataURL('image/jpeg', 0.82))
+    }
+    video.onerror = () => {
+      release()
+      reject(new Error('decode failed'))
+    }
+    video.src = src
+  })
+}
+
+/**
  * Captures a poster frame (about 1 s in) as a JPEG and stores it in media/.thumbs, so media
  * tiles and slide thumbnails show a still instead of loading the whole video.
  */
 async function createVideoThumbnail(asset: MediaAsset, duration: number | null): Promise<void> {
   try {
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const video = document.createElement('video')
-      video.muted = true
-      video.preload = 'auto'
-      video.crossOrigin = 'anonymous'
-      const timeout = window.setTimeout(() => reject(new Error('timeout')), 20000)
-      video.onloadeddata = () => {
-        video.currentTime = Math.min(1, (duration ?? 2) / 2)
-      }
-      video.onseeked = () => {
-        window.clearTimeout(timeout)
-        const w = 480
-        const h = Math.round((w * (video.videoHeight || 9)) / (video.videoWidth || 16))
-        const canvas = document.createElement('canvas')
-        canvas.width = w
-        canvas.height = h
-        canvas.getContext('2d')?.drawImage(video, 0, 0, w, h)
-        resolve(canvas.toDataURL('image/jpeg', 0.82))
-        video.removeAttribute('src')
-        video.load()
-      }
-      video.onerror = () => {
-        window.clearTimeout(timeout)
-        reject(new Error('decode failed'))
-      }
-      video.src = mediaUrl(asset.fileName)
-    })
+    const dataUrl = await captureVideoFrame(mediaUrl(asset.fileName), duration)
     const thumbnail = await window.bhcf.media.saveThumbnail(asset.id, dataUrl)
     applyChange(
       'Media thumbnail',

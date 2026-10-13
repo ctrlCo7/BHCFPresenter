@@ -58,4 +58,19 @@ describe('when a video ends', () => {
     tickMedia()
     expect(live.get().media).toMatchObject({ mediaId: 'clip', playing: true, loop: true })
   })
+
+  it('keeps a video started with Loop going, and ends it once looping is turned off', () => {
+    playMedia('clip', null, true)
+    vi.setSystemTime(1_000_000 + 25_000)
+    tickMedia()
+    expect(live.get().media).toMatchObject({ mediaId: 'clip', loop: true })
+    // 25 s in is 5 s into the third pass; turned off there, it plays to the end of that pass.
+    mediaSetLoop(false)
+    vi.setSystemTime(1_000_000 + 25_000 + 4_000)
+    tickMedia()
+    expect(live.get().media?.mediaId).toBe('clip')
+    vi.setSystemTime(1_000_000 + 25_000 + 5_100)
+    tickMedia()
+    expect(live.get().media).toBeNull()
+  })
 })
