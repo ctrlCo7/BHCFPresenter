@@ -7,7 +7,8 @@ import { MEDIA_EXTENSIONS, mediaTypeFor, PW_BACKGROUNDS_DIR } from '../../shared
 import type { MediaAsset, Presentation } from '../../shared/model/types'
 import type { BibleService } from '../bible/BibleService'
 import { sanitizeOutputs, sanitizeRemote, type AppConfig } from '../config/AppConfig'
-import { copyIntoLibrary, folderAccessMessage, listLibraryDir, resolveLibraryFile } from '../media/BackgroundLibrary'
+import { builtInsNotIn, copyFolderIntoLibrary, copyIntoLibrary, folderAccessMessage, listLibraryDir, resolveLibraryFile } from '../media/BackgroundLibrary'
+import { builtInBackgroundsDir } from '../media/mediaProtocol'
 import { deleteMediaFiles, importMediaFiles, listMediaFiles, moveToBackgroundsFolder, saveThumbnail } from '../media/MediaImporter'
 import type { OutputManager } from '../output/OutputManager'
 import { exportPresentation, importPresentation } from '../project/PresentationTransfer'
@@ -217,7 +218,10 @@ export function registerIpc({ store, config, outputs, bibles, remote, updates, g
   /* --------------- Backgrounds folder (Templates → My Backgrounds) --------------- */
 
   const libraryDir = (): string => config.get().backgroundsDir ?? path.join(app.getPath('documents'), 'Backgrounds')
-  const listLibrary = (): Promise<LibraryListing> => listLibraryDir(libraryDir())
+  const listLibrary = async (): Promise<LibraryListing> => {
+    const [listing, builtIn] = await Promise.all([listLibraryDir(libraryDir()), listLibraryDir(builtInBackgroundsDir())])
+    return { ...listing, builtIn: builtInsNotIn(listing, builtIn.files) }
+  }
   const BACKGROUND_EXTENSIONS = MEDIA_EXTENSIONS.filter((ext) => mediaTypeFor(`x.${ext}`)?.kind !== 'audio')
   h(IPC.libraryList, () => listLibrary())
   h(IPC.libraryChooseDir, async () => {
@@ -259,8 +263,19 @@ export function registerIpc({ store, config, outputs, bibles, remote, updates, g
     const { added, skipped } = await copyIntoLibrary(libraryDir(), res.filePaths)
     return { listing: await listLibrary(), added, skipped }
   })
-  h(IPC.libraryImport, async (_e, name: unknown) => {
-    const source = resolveLibraryFile(libraryDir(), name)
+  h(IPC.libraryAddFolder, async () => {
+    const res = await openDialog({
+      title: 'Add a folder of background videos',
+      buttonLabel: 'Add This Folder',
+      properties: ['openDirectory']
+    })
+    const folder = res.canceled ? undefined : res.filePaths[0]
+    if (!folder) return null
+    const { added, skipped } = await copyFolderIntoLibrary(libraryDir(), folder)
+    return { listing: await listLibrary(), added, skipped }
+  })
+  h(IPC.libraryImport, async (_e, name: unknown, from: unknown) => {
+    const source = resolveLibraryFile(from === 'builtin' ? builtInBackgroundsDir() : libraryDir(), name)
     const res = await importMediaFiles(store.requireOpen().media, [source], PW_BACKGROUNDS_DIR)
     const asset = res.imported[0]
     if (!asset) throw new AppError('IMPORT_FAILED', res.skipped[0]?.reason ?? 'The file could not be copied.')

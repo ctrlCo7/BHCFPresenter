@@ -1,7 +1,7 @@
 {
   "name": "bhcf-presenter",
   "productName": "BHCF Presenter",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Live presentation and media software for churches, conferences and events.",
   "author": "John Carl Sarbida",
   "license": "UNLICENSED",
@@ -69,6 +69,10 @@
       {
         "from": "resources/bibles",
         "to": "bibles"
+      },
+      {
+        "from": "resources/backgrounds",
+        "to": "backgrounds"
       },
       {
         "from": "resources/icon.png",

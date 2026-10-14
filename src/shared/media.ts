@@ -58,8 +58,9 @@ export function mediaUrl(fileName: string): string {
 }
 
 /** URL of a file in the backgrounds folder on this computer (Templates → My Backgrounds). */
-export function libraryUrl(fileName: string): string {
-  return `${MEDIA_PROTOCOL}://library/${encodeURIComponent(fileName)}`
+/** A file in the backgrounds folder, or (builtIn) one of the backgrounds that come with the app. */
+export function libraryUrl(fileName: string, builtIn = false): string {
+  return `${MEDIA_PROTOCOL}://${builtIn ? 'builtin' : 'library'}/${encodeURIComponent(fileName)}`
 }
 
 /** URL of a video's poster image stored in media/.thumbs. */

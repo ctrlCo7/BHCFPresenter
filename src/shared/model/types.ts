@@ -224,6 +224,8 @@ export interface Overlay {
    * off screen, and taking a slide, media or the logo hides it, so the two never overlap.
    */
   fullScreen?: boolean
+  /** The timer this is the screen of: the Timers panel shows and designs this overlay for it */
+  timerId?: Id
 }
 
 export type TimerKind = 'countdown' | 'countup' | 'clock' | 'countdown-to-time'

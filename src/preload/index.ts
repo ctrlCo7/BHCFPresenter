@@ -61,8 +61,9 @@ const api: BhcfApi = {
     list: () => call(IPC.libraryList),
     chooseDir: () => call(IPC.libraryChooseDir),
     openDir: () => call(IPC.libraryOpenDir),
-    import: (name) => call(IPC.libraryImport, name),
-    addFiles: () => call(IPC.libraryAddFiles)
+    import: (name, source = 'folder') => call(IPC.libraryImport, name, source),
+    addFiles: () => call(IPC.libraryAddFiles),
+    addFolder: () => call(IPC.libraryAddFolder)
   },
   displays: {
     list: () => call(IPC.displaysList),

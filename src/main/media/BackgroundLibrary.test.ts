@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { copyIntoLibrary, folderAccessMessage, listLibraryDir, resolveLibraryFile } from './BackgroundLibrary'
+import { builtInsNotIn, copyFolderIntoLibrary, copyIntoLibrary, folderAccessMessage, listLibraryDir, resolveLibraryFile } from './BackgroundLibrary'
 
 let root: string
 const put = (rel: string, bytes = 4): void => {
@@ -74,5 +74,30 @@ describe('backgrounds folder', () => {
     const again = await copyIntoLibrary(dir, [path.join(root, 'Downloads', 'Clouds.mp4'), path.join(root, 'Other', 'Clouds.mp4')])
     expect(again.added).toBe(2)
     expect(readdirSync(dir).sort()).toEqual(['Clouds (2).mp4', 'Clouds.mp4'])
+  })
+
+  it('adds a whole folder, subfolders included, under its own name', async () => {
+    const dir = path.join(root, 'Backgrounds')
+    put('Downloads/Worship/Calm.mp4')
+    put('Downloads/Worship/Fast/Lights.mov')
+    put('Downloads/Worship/song.mp3')
+    put('Downloads/Worship/old.avi')
+    const res = await copyFolderIntoLibrary(dir, path.join(root, 'Downloads', 'Worship'))
+    expect(res.added).toBe(2)
+    expect(res.skipped.map((s) => s.name)).toEqual(['old.avi'])
+    expect((await listLibraryDir(dir)).files.map((f) => f.name)).toEqual(['Worship/Calm.mp4', 'Worship/Fast/Lights.mov'])
+    // The backgrounds folder itself (or a folder inside it) is not copied into itself.
+    expect((await copyFolderIntoLibrary(dir, path.join(dir, 'Worship'))).added).toBe(0)
+    expect((await copyFolderIntoLibrary(dir, path.join(root, 'Empty'))).skipped).toHaveLength(1)
+  })
+
+  it('hides built-in backgrounds the folder already has', async () => {
+    put('Backgrounds/7762075-hd_1920_1080_25fps.mp4', 30)
+    const listing = await listLibraryDir(path.join(root, 'Backgrounds'))
+    const builtIn = [
+      { name: 'Purple Haze.mp4', kind: 'video' as const, sizeBytes: 30 },
+      { name: 'Gold Dust.mp4', kind: 'video' as const, sizeBytes: 40 }
+    ]
+    expect(builtInsNotIn(listing, builtIn).map((f) => f.name)).toEqual(['Gold Dust.mp4'])
   })
 })

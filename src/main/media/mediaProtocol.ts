@@ -7,7 +7,7 @@
 import { createReadStream, promises as fs } from 'node:fs'
 import path from 'node:path'
 import { Readable } from 'node:stream'
-import { protocol } from 'electron'
+import { app, protocol } from 'electron'
 import { MEDIA_PROTOCOL, mediaTypeFor, PW_BACKGROUNDS_DIR } from '../../shared/media'
 import { isInside } from '../util/fsx'
 
@@ -39,14 +39,20 @@ function parseRange(header: string, size: number): { start: number; end: number 
   return { start, end }
 }
 
+/** Background videos that come with the app: resources/backgrounds in development, next to the app when packaged. */
+export function builtInBackgroundsDir(): string {
+  return app.isPackaged ? path.join(process.resourcesPath, 'backgrounds') : path.join(app.getAppPath(), 'resources', 'backgrounds')
+}
+
 /**
  * Hosts: "project" = the open project's media folder; "library" = the backgrounds folder on this
- * computer (previews in Templates → My Backgrounds, streamed without copying).
+ * computer and "builtin" = the backgrounds that come with the app (previews in Templates, streamed
+ * without copying).
  */
 export function handleMediaProtocol(getMediaDir: () => string | null, getLibraryDir: () => string | null): void {
   protocol.handle(MEDIA_PROTOCOL, async (request) => {
     const url = new URL(request.url)
-    const mediaDir = url.host === 'library' ? getLibraryDir() : getMediaDir()
+    const mediaDir = url.host === 'library' ? getLibraryDir() : url.host === 'builtin' ? builtInBackgroundsDir() : getMediaDir()
     if (!mediaDir) return new Response('No folder', { status: 404 })
 
     let fileName: string
@@ -56,7 +62,7 @@ export function handleMediaProtocol(getMediaDir: () => string | null, getLibrary
       return new Response('Bad request', { status: 400 })
     }
     let filePath = path.resolve(mediaDir, fileName)
-    if ((url.host !== 'project' && url.host !== 'library') || !isInside(mediaDir, filePath)) return new Response('Forbidden', { status: 403 })
+    if (!['project', 'library', 'builtin'].includes(url.host) || !isInside(mediaDir, filePath)) return new Response('Forbidden', { status: 403 })
 
     const statFile = (p: string): Promise<number | null> => fs.stat(p).then((st) => (st.isFile() ? st.size : null), () => null)
     let size = await statFile(filePath)

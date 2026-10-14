@@ -104,6 +104,19 @@ button.tpl-card:disabled {
   height: 100%;
   display: block;
 }
+.tpl-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 22px 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.tpl-copying {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
 .tpl-hover-video {
   position: absolute;
   inset: 0;

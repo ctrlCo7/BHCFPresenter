@@ -252,7 +252,13 @@ function normOverlay(id: Id, v: unknown, repairs: string[]): Overlay | null {
   if (!slide) return null
   // Older projects: countdown overlays become full-screen timer screens.
   const fullScreen = bool(v.fullScreen, isTimerScreen(slide))
-  return { id, name, slide: fullScreen ? slide : { ...slide, background: { type: 'none' } }, fullScreen }
+  return {
+    id,
+    name,
+    slide: fullScreen ? slide : { ...slide, background: { type: 'none' } },
+    fullScreen,
+    ...(typeof v.timerId === 'string' && v.timerId ? { timerId: v.timerId } : {})
+  }
 }
 
 function normTimer(id: Id, v: unknown): TimerDef | null {
@@ -636,6 +642,8 @@ export function normalizeProject(raw: unknown): NormalizeResult {
       if (t) timers[id] = t
     }
   }
+  // A screen whose timer is gone is an ordinary overlay again.
+  for (const o of Object.values(overlays)) if (o.timerId && !timers[o.timerId]) delete o.timerId
 
   const libraryRoots = repairTrees('library', stored.map((p) => p.trees.library), folders, new Set(Object.keys(presentations)), repairs)
   const playlistRoots = repairTrees('playlists', stored.map((p) => p.trees.playlists), folders, new Set(Object.keys(playlists)), repairs)

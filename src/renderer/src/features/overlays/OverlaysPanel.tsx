@@ -23,7 +23,7 @@ export function newOverlayMenu(anchor: HTMLElement, project: Project): void {
       type: 'submenu',
       label: 'Countdown Timer',
       items: timers.length
-        ? timers.map((t) => ({ label: t.name, onSelect: () => newOverlay('countdown', t.name) }))
+        ? timers.map((t) => ({ label: t.name, onSelect: () => newOverlay('countdown', t) }))
         : [{ label: 'Create a timer first (Timers tab)', disabled: true, onSelect: () => undefined }]
     },
     { type: 'separator' },

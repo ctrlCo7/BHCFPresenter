@@ -1,6 +1,7 @@
 import { MonitorUp, Palette, Pause, Pencil, Play, Plus, RotateCcw, Timer, Trash2 } from 'lucide-react'
 import { createElement, useEffect, useState, type ReactElement } from 'react'
 import type { Id, Project, TimerDef, TimerKind } from '@shared/model/types'
+import { addTimer, deleteTimer, draftTimer, editTimerDesign, showTimerOverlay, timerNameTaken, timerOverlays, updateTimer } from './overlayActions'
 import { formatTimer, idleRuntime, isTimerExpired } from '@shared/timers'
 import { EmptyState, IconButton, PanelHeader } from '../../components/ui/Panel'
 import { NumberField, Row, Select, Toggle } from '../../components/ui/fields'
@@ -8,7 +9,6 @@ import { timerReset, timerToggle } from '../../live/liveActions'
 import { useLiveStore } from '../../live/liveStore'
 import { contextMenu, dialogs } from '../../store/overlayStore'
 import { useProjectStore } from '../../store/projectStore'
-import { deleteTimer, editTimerDesign, newTimer, showTimerOverlay, timerOverlays, updateTimer } from './overlayActions'
 import './overlays.css'
 
 const KINDS: { value: TimerKind; label: string }[] = [
@@ -18,8 +18,10 @@ const KINDS: { value: TimerKind; label: string }[] = [
   { value: 'clock', label: 'Clock' }
 ]
 
-function TimerForm({ timer, onClose }: { timer: TimerDef; onClose: (v: Partial<TimerDef> | null) => void }): ReactElement {
+function TimerForm({ timer, isNew, onClose }: { timer: TimerDef; isNew: boolean; onClose: (v: Partial<TimerDef> | null) => void }): ReactElement {
   const [t, setT] = useState(timer)
+  const project = useProjectStore((s) => s.project)
+  const taken = !!project && timerNameTaken(project, t.name, timer.id)
   const minutes = Math.floor(t.durationSec / 60)
   const seconds = t.durationSec % 60
   return (
@@ -27,6 +29,7 @@ function TimerForm({ timer, onClose }: { timer: TimerDef; onClose: (v: Partial<T
       <Row label="Name">
         <input className="input" value={t.name} onChange={(e) => setT({ ...t, name: e.target.value })} autoFocus />
       </Row>
+      {taken && <p className="timer-form-error">Another timer is already called "{t.name.trim()}". Give this one a different name.</p>}
       <Row label="Type">
         <Select value={t.kind} options={KINDS} onChange={(kind) => setT({ ...t, kind })} />
       </Row>
@@ -54,19 +57,35 @@ function TimerForm({ timer, onClose }: { timer: TimerDef; onClose: (v: Partial<T
         <button className="btn" onClick={() => onClose(null)}>
           Cancel
         </button>
-        <button className="btn primary" disabled={!t.name.trim()} onClick={() => onClose({ name: t.name.trim(), kind: t.kind, durationSec: t.durationSec, targetTime: t.targetTime, allowOverrun: t.allowOverrun })}>
-          Save
+        <button
+          className="btn primary"
+          disabled={!t.name.trim() || taken}
+          onClick={() => onClose({ name: t.name.trim(), kind: t.kind, durationSec: t.durationSec, targetTime: t.targetTime, allowOverrun: t.allowOverrun })}
+        >
+          {isNew ? 'Add Timer' : 'Save'}
         </button>
       </div>
     </div>
   )
 }
 
+/** Edits this timer's settings; the change applies to this timer only, by its id. */
 export async function editTimer(id: Id): Promise<void> {
   const timer = useProjectStore.getState().project?.timers[id]
   if (!timer) return
-  const patch = await dialogs.custom<Partial<TimerDef>>({ title: 'Timer', width: 460, render: (close) => createElement(TimerForm, { timer, onClose: close }) })
+  const patch = await dialogs.custom<Partial<TimerDef>>({
+    title: `Edit Timer · ${timer.name}`,
+    width: 460,
+    render: (close) => createElement(TimerForm, { timer, isNew: false, onClose: close })
+  })
   if (patch) updateTimer(id, patch)
+}
+
+/** Asks for a new timer's settings; it is only added on Add Timer, never on Cancel. */
+async function addNewTimer(kind: TimerKind): Promise<void> {
+  const draft = draftTimer(kind)
+  const patch = await dialogs.custom<Partial<TimerDef>>({ title: 'New Timer', width: 460, render: (close) => createElement(TimerForm, { timer: draft, isNew: true, onClose: close }) })
+  if (patch) addTimer({ ...draft, ...patch })
 }
 
 export function TimersPanel({ compact = false }: { compact?: boolean }): ReactElement {
@@ -85,7 +104,7 @@ export function TimersPanel({ compact = false }: { compact?: boolean }): ReactEl
     contextMenu.open({
       x: r.left,
       y: r.bottom + 4,
-      items: KINDS.map((k) => ({ label: k.label, onSelect: () => void editTimer(newTimer(k.value)) }))
+      items: KINDS.map((k) => ({ label: k.label, onSelect: () => void addNewTimer(k.value) }))
     })
   }
 
@@ -112,9 +131,14 @@ export function TimersPanel({ compact = false }: { compact?: boolean }): ReactEl
             const view = { def: t, runtime }
             const expired = isTimerExpired(view, now)
             const runnable = t.kind === 'countdown' || t.kind === 'countup'
-            const onScreen = timerOverlays(project, t.name).some((oid) => overlaysOn.includes(oid))
+            const onScreen = timerOverlays(project, t).some((oid) => overlaysOn.includes(oid))
             return (
-              <div key={t.id} className={`timer-row${runtime.running ? ' running' : ''}${expired ? ' expired' : ''}`} onDoubleClick={(e) => !(e.target as HTMLElement).closest('button') && editTimerDesign(t.id)} title="Double-click to edit its design">
+              <div
+                key={t.id}
+                className={`timer-row${runtime.running ? ' running' : ''}${expired ? ' expired' : ''}`}
+                onDoubleClick={(e) => !(e.target as HTMLElement).closest('button') && void editTimer(t.id)}
+                title="Double-click to change its name, type or time"
+              >
                 <div className="timer-info">
                   <span className="timer-name">{t.name}</span>
                   <span className="timer-kind">{KINDS.find((k) => k.value === t.kind)?.label}</span>
@@ -124,7 +148,7 @@ export function TimersPanel({ compact = false }: { compact?: boolean }): ReactEl
                 {runnable && <IconButton icon={<RotateCcw size={14} />} title="Reset" onClick={() => timerReset(t.id)} />}
                 <IconButton icon={<MonitorUp size={14} />} title={onScreen ? 'Hide from screen' : 'Show on screen'} active={onScreen} onClick={() => showTimerOverlay(t.id)} />
                 <IconButton icon={<Palette size={14} />} title="Edit design (fonts, colours, background) in the slide editor" onClick={() => editTimerDesign(t.id)} />
-                {!compact && <IconButton icon={<Pencil size={14} />} title="Timer settings (name, type, duration)" onClick={() => void editTimer(t.id)} />}
+                <IconButton icon={<Pencil size={14} />} title="Edit timer (name, type, time)" onClick={() => void editTimer(t.id)} />
                 {!compact && <IconButton icon={<Trash2 size={14} />} title="Delete timer" onClick={() => void deleteTimer(t.id)} />}
               </div>
             )

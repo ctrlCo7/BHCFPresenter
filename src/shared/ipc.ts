@@ -129,7 +129,12 @@ export interface LibraryListing {
   error: string | null
   /** Video files in a format the app cannot play (MKV, AVI…), with a few names to show */
   unsupported: { count: number; examples: string[] }
+  /** Backgrounds that come with the app, minus any the folder above already has */
+  builtIn: LibraryFile[]
 }
+
+/** Where a Templates background lives: the backgrounds folder, or the ones that come with the app. */
+export type LibrarySource = 'folder' | 'builtin'
 
 export interface LibraryAddResult {
   listing: LibraryListing
@@ -168,6 +173,7 @@ export const IPC = {
   libraryOpenDir: 'library:open-dir',
   libraryImport: 'library:import',
   libraryAddFiles: 'library:add-files',
+  libraryAddFolder: 'library:add-folder',
   mediaListFiles: 'media:list-files',
   mediaDeleteFiles: 'media:delete-files',
   displaysList: 'displays:list',
@@ -259,8 +265,10 @@ export interface BhcfApi {
     openDir(): Promise<void>
     /** Lets the user pick video/image files and copies them into the folder; null if cancelled. */
     addFiles(): Promise<LibraryAddResult | null>
-    /** Copies a file from the folder into the open project. */
-    import(name: string): Promise<MediaAsset>
+    /** Lets the user pick a folder and copies the videos/images in it (subfolders too) into the folder; null if cancelled. */
+    addFolder(): Promise<LibraryAddResult | null>
+    /** Copies a file from the folder (or one that comes with the app) into the open project. */
+    import(name: string, source?: LibrarySource): Promise<MediaAsset>
   }
   displays: {
     list(): Promise<DisplayInfo[]>

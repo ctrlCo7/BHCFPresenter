@@ -122,3 +122,8 @@
 .timers-panel.compact .timer-value {
   font-size: 15px;
 }
+.timer-form-error {
+  margin: -4px 0 8px;
+  color: var(--danger, #d33);
+  font-size: 12px;
+}

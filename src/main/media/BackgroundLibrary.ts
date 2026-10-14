@@ -25,7 +25,7 @@ export function folderAccessMessage(code: string | undefined, platform: NodeJS.P
 }
 
 export async function listLibraryDir(dir: string): Promise<LibraryListing> {
-  const listing: LibraryListing = { dir, exists: true, files: [], error: null, unsupported: { count: 0, examples: [] } }
+  const listing: LibraryListing = { dir, exists: true, files: [], error: null, unsupported: { count: 0, examples: [] }, builtIn: [] }
   try {
     await fs.readdir(dir)
   } catch (err) {
@@ -79,6 +79,47 @@ export function resolveLibraryFile(dir: string, name: unknown): string {
   const full = path.join(dir, ...parts)
   if (!isInside(dir, full)) throw new AppError('INVALID', 'Invalid file name.')
   return full
+}
+
+/**
+ * The backgrounds that come with the app, leaving out those the folder already has. They are
+ * matched by exact size, since the bundled copies carry friendlier names than the downloads.
+ */
+export function builtInsNotIn(listing: LibraryListing, builtIn: LibraryFile[]): LibraryFile[] {
+  const have = new Set(listing.files.map((f) => f.sizeBytes))
+  return builtIn.filter((f) => !have.has(f.sizeBytes))
+}
+
+/**
+ * Copies the videos and images in a picked folder (subfolders too) into a subfolder of the same
+ * name, e.g. "Worship" → "<backgrounds>/Worship/…". Files already in the backgrounds folder are left alone.
+ */
+export async function copyFolderIntoLibrary(dir: string, folder: string): Promise<{ added: number; skipped: { name: string; reason: string }[] }> {
+  const root = path.resolve(dir)
+  const picked = path.resolve(folder)
+  if (isInside(root, picked)) return { added: 0, skipped: [{ name: path.basename(picked), reason: 'This folder is already in your backgrounds folder.' }] }
+  const listing = await listLibraryDir(picked)
+  if (!listing.exists || listing.error) return { added: 0, skipped: [{ name: path.basename(picked), reason: listing.error ?? 'The folder could not be found.' }] }
+  const skipped: { name: string; reason: string }[] = listing.unsupported.examples.map((name) => ({
+    name,
+    reason: "This video format can't be played. Convert it to MP4 (H.264), for example with HandBrake."
+  }))
+  // Group by subfolder so each lands in the same place under the new folder.
+  const groups = new Map<string, string[]>()
+  for (const f of listing.files) {
+    const source = path.join(picked, ...f.name.split('/'))
+    if (isInside(root, source)) continue // e.g. the backgrounds folder is inside the picked folder
+    const sub = f.name.includes('/') ? f.name.slice(0, f.name.lastIndexOf('/')) : ''
+    groups.set(sub, [...(groups.get(sub) ?? []), source])
+  }
+  let added = 0
+  for (const [sub, sources] of groups) {
+    const res = await copyIntoLibrary(path.join(root, path.basename(picked), ...(sub ? sub.split('/') : [])), sources)
+    added += res.added
+    skipped.push(...res.skipped)
+  }
+  if (added === 0 && skipped.length === 0) skipped.push({ name: path.basename(picked), reason: 'There are no videos or images in this folder.' })
+  return { added, skipped }
 }
 
 /**

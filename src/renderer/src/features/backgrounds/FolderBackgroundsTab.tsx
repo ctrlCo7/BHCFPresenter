@@ -4,7 +4,7 @@
  * folder. Previews stream straight from the folder; using one copies it into the project (once) so
  * the project stays self-contained, then plays it.
  */
-import { AlertTriangle, Clapperboard, FilePlus2, FolderOpen, FolderSearch, Loader2, Play, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Clapperboard, FilePlus2, FolderOpen, FolderPlus, FolderSearch, Loader2, Play, RefreshCw, Sparkles } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { LibraryFile, LibraryListing } from '@shared/ipc'
 import { libraryUrl } from '@shared/media'
@@ -16,6 +16,8 @@ import { addNewMedia, captureVideoFrame, formatBytes } from '../media/mediaActio
 
 /** "Worship/Clouds.mp4" → "Clouds.mp4". */
 const baseName = (name: string): string => name.slice(name.lastIndexOf('/') + 1)
+
+const busyKey = (file: LibraryFile, builtIn: boolean): string => `${builtIn ? 'builtin' : 'folder'}:${file.name}`
 
 /** "Worship/Clouds.mp4" → "Worship"; null at the top of the folder. */
 export const subfolderOf = (name: string): string | null => (name.includes('/') ? name.slice(0, name.lastIndexOf('/')) : null)
@@ -38,32 +40,45 @@ export function describeLibraryFile(file: LibraryFile): { title: string; quality
 const posters = new Map<string, string>()
 let posterQueue: Promise<unknown> = Promise.resolve()
 
-function usePoster(file: LibraryFile, visible: boolean): string | null {
-  const key = `${file.name}|${file.sizeBytes}`
+function usePoster(file: LibraryFile, builtIn: boolean, visible: boolean): string | null {
+  const key = `${builtIn ? 'builtin' : 'folder'}:${file.name}|${file.sizeBytes}`
   const [poster, setPoster] = useState(() => posters.get(key) ?? null)
   useEffect(() => {
     if (file.kind !== 'video' || !visible || poster) return
     let cancelled = false
     posterQueue = posterQueue.then(async () => {
       if (cancelled) return
-      const url = posters.get(key) ?? (await captureVideoFrame(libraryUrl(file.name), null, 400).catch(() => null))
+      const url = posters.get(key) ?? (await captureVideoFrame(libraryUrl(file.name, builtIn), null, 400).catch(() => null))
       if (url) posters.set(key, url)
       if (!cancelled) setPoster(url)
     })
     return () => {
       cancelled = true
     }
-  }, [file.kind, file.name, key, visible, poster])
+  }, [file.kind, file.name, builtIn, key, visible, poster])
   return poster
 }
 
-function FileCard({ file, busy, onUse }: { file: LibraryFile; busy: boolean; onUse: (file: LibraryFile, mode: 'background' | 'full') => void }): ReactElement {
+type UseMode = 'background' | 'full'
+
+function FileCard({
+  file,
+  builtIn,
+  busy,
+  onUse
+}: {
+  file: LibraryFile
+  /** One of the backgrounds that come with the app */
+  builtIn: boolean
+  busy: boolean
+  onUse: (file: LibraryFile, builtIn: boolean, mode: UseMode) => void
+}): ReactElement {
   const { title, quality } = describeLibraryFile(file)
-  const src = libraryUrl(file.name)
+  const src = libraryUrl(file.name, builtIn)
   const ref = useRef<HTMLDivElement>(null)
   const [visible, setVisible] = useState(false)
   const [hover, setHover] = useState(false)
-  const poster = usePoster(file, visible)
+  const poster = usePoster(file, builtIn, visible)
   useEffect(() => {
     const el = ref.current
     if (!el || visible) return
@@ -97,10 +112,10 @@ function FileCard({ file, busy, onUse }: { file: LibraryFile; busy: boolean; onU
         {file.kind === 'video' ? 'Video' : 'Image'} · {formatBytes(file.sizeBytes)}
       </div>
       <div className="tpl-actions">
-        <button className="btn primary" disabled={busy} onClick={() => onUse(file, 'background')} title="Loop behind the lyrics">
+        <button className="btn primary" disabled={busy} onClick={() => onUse(file, builtIn, 'background')} title="Loop behind the lyrics">
           <Clapperboard size={13} /> Use as Background
         </button>
-        <button className="btn" disabled={busy} onClick={() => onUse(file, 'full')} title="Play full screen">
+        <button className="btn" disabled={busy} onClick={() => onUse(file, builtIn, 'full')} title="Play full screen">
           <Play size={13} /> Full Screen
         </button>
       </div>
@@ -126,13 +141,13 @@ export function FolderBackgroundsTab(): ReactElement {
   const existing = (file: LibraryFile): Id | null =>
     Object.values(media ?? {}).find((a) => a.originalName === baseName(file.name) &&a.sizeBytes === file.sizeBytes)?.id ?? null
 
-  const use = async (file: LibraryFile, mode: 'background' | 'full'): Promise<void> => {
+  const use = async (file: LibraryFile, builtIn: boolean, mode: UseMode): Promise<void> => {
     if (busy) return
     let id = existing(file)
     if (!id) {
-      setBusy(file.name)
+      setBusy(busyKey(file, builtIn))
       try {
-        const asset = await window.bhcf.library.import(file.name)
+        const asset = await window.bhcf.library.import(file.name, builtIn ? 'builtin' : 'folder')
         const { title } = describeLibraryFile(file)
         await addNewMedia([{ ...asset, name: title }], `Add background ${title}`, { pwBackgrounds: true })
         id = asset.id
@@ -148,15 +163,17 @@ export function FolderBackgroundsTab(): ReactElement {
     toast.success(mode === 'background' ? 'Playing behind your lyrics' : 'Playing full screen', `${describeLibraryFile(file).title} is in Media › P&W Backgrounds too.`)
   }
 
+  const onUse = (file: LibraryFile, builtIn: boolean, mode: UseMode): void => void use(file, builtIn, mode)
+
   const openFolder = (): void => {
     void window.bhcf.library.openDir().catch((err: unknown) => toast.error('Could not open the folder', errorMessage(err)))
   }
 
-  const addFiles = (): void => {
+  /** Add Videos… (pick files) or Add Folder… (every video in a folder); both copy into the backgrounds folder. */
+  const add = (what: 'files' | 'folder'): void => {
     if (adding) return
     setAdding(true)
-    void window.bhcf.library
-      .addFiles()
+    void (what === 'files' ? window.bhcf.library.addFiles() : window.bhcf.library.addFolder())
       .then((res) => {
         if (!res) return
         setListing(res.listing)
@@ -169,7 +186,7 @@ export function FolderBackgroundsTab(): ReactElement {
           toast.warning(`Skipped ${res.skipped.length} file${res.skipped.length === 1 ? '' : 's'}`, detail)
         }
       })
-      .catch((err: unknown) => toast.error('Could not add the files', errorMessage(err)))
+      .catch((err: unknown) => toast.error(what === 'files' ? 'Could not add the files' : 'Could not add the folder', errorMessage(err)))
       .finally(() => setAdding(false))
   }
 
@@ -191,8 +208,16 @@ export function FolderBackgroundsTab(): ReactElement {
         <button className="btn" onClick={refresh} title="Look for new files">
           <RefreshCw size={13} /> Refresh
         </button>
-        <button className="btn primary" onClick={addFiles} disabled={adding} title="Pick video or image files and copy them into this folder">
-          {adding ? <Loader2 size={13} className="spin" /> : <FilePlus2 size={13} />} {adding ? 'Copying…' : 'Add Videos…'}
+        {adding && (
+          <span className="muted tpl-copying">
+            <Loader2 size={13} className="spin" /> Copying…
+          </span>
+        )}
+        <button className="btn primary" onClick={() => add('files')} disabled={adding} title="Pick video or image files and copy them into this folder">
+          <FilePlus2 size={13} /> Add Videos…
+        </button>
+        <button className="btn primary" onClick={() => add('folder')} disabled={adding} title="Pick a folder: every video and image in it (subfolders too) is copied into this folder">
+          <FolderPlus size={13} /> Add Folder…
         </button>
         <button className="btn" onClick={openFolder}>
           <FolderOpen size={13} /> Open Folder
@@ -202,8 +227,9 @@ export function FolderBackgroundsTab(): ReactElement {
         </button>
       </div>
       <p className="muted tpl-hint">
-        Your own background videos and images (MP4, MOV, WebM, JPG, PNG), subfolders included. Click <b>Add Videos…</b> to pick files, or <b>Change Folder…</b> to show
-        a folder you already have. Hover to preview; the first time you use one it is copied into the project so it plays even without this folder.
+        Your own background videos and images (MP4, MOV, WebM, JPG, PNG), subfolders included. Click <b>Add Videos…</b> to pick files, <b>Add Folder…</b> to add every
+        video in a folder, or <b>Change Folder…</b> to show a folder you already have. Hover to preview; the first time you use one it is copied into the project so it
+        plays even without this folder.
       </p>
       {listing?.files.some((f) => describeLibraryFile(f).quality === '4K') && (
         <p className="muted tpl-hint">
@@ -217,7 +243,7 @@ export function FolderBackgroundsTab(): ReactElement {
       )}
       {listing && !listing.exists && <p className="tpl-hint">This folder does not exist yet. Click Add Videos… to pick your backgrounds, or Change Folder… to use a folder you already have.</p>}
       {listing?.exists && !listing.error && listing.files.length === 0 && (
-        <p className="tpl-hint">No videos or images in this folder yet. Click Add Videos… to pick some, or Change Folder… if your videos are in another folder.</p>
+        <p className="tpl-hint">No videos or images in this folder yet. Click Add Videos… or Add Folder… to add some, or Change Folder… if your videos are in another folder.</p>
       )}
       {listing && listing.unsupported.count > 0 && (
         <p className="tpl-hint tpl-warning">
@@ -228,9 +254,21 @@ export function FolderBackgroundsTab(): ReactElement {
       )}
       <div className="tpl-grid">
         {listing?.files.map((f) => (
-          <FileCard key={f.name} file={f} busy={busy === f.name} onUse={(file, mode) => void use(file, mode)} />
+          <FileCard key={f.name} file={f} builtIn={false} busy={busy === busyKey(f, false)} onUse={onUse} />
         ))}
       </div>
+      {listing && listing.builtIn.length > 0 && (
+        <>
+          <h3 className="tpl-section">
+            <Sparkles size={14} /> Included with BHCF Presenter
+          </h3>
+          <div className="tpl-grid">
+            {listing.builtIn.map((f) => (
+              <FileCard key={f.name} file={f} builtIn busy={busy === busyKey(f, true)} onUse={onUse} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
