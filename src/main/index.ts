@@ -9,12 +9,14 @@ import { OutputManager } from './output/OutputManager'
 import { ProjectStore } from './project/ProjectStore'
 import { RemoteServer } from './remote/RemoteServer'
 import { UpdateService } from './updates/UpdateService'
+import { logGraphicsStatus, setUpGraphics } from './util/graphics'
 import { installCrashLogging, log } from './util/log'
 import { createMainWindow, focusWindow, loadRendererPage, titleBarColors, windowBackground } from './windows/mainWindow'
 
 app.setName('BHCF Presenter')
 registerMediaScheme()
 installCrashLogging()
+setUpGraphics()
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -54,10 +56,18 @@ if (!app.requestSingleInstanceLock()) {
     )
     registerIpc({ store, config, outputs, bibles, remote, updates, getMainWindow, projectsRoot })
 
+    // Plugging in a projector fires a burst of display events; handle them once it settles, so
+    // output windows are not closed and reopened several times in a row.
+    let displayTimer: NodeJS.Timeout | null = null
     const onDisplaysChanged = (): void => {
-      getMainWindow()?.webContents.send(IPC.displaysChanged, listDisplays())
-      // Re-place outputs when a projector is plugged in or removed.
-      outputs.reconcile()
+      if (displayTimer) clearTimeout(displayTimer)
+      displayTimer = setTimeout(() => {
+        displayTimer = null
+        log('info', `Screens changed: ${screen.getAllDisplays().length} connected`)
+        getMainWindow()?.webContents.send(IPC.displaysChanged, listDisplays())
+        // Re-place outputs when a projector is plugged in or removed.
+        outputs.reconcile()
+      }, 600)
     }
     screen.on('display-added', onDisplaysChanged)
     screen.on('display-removed', onDisplaysChanged)
@@ -76,6 +86,7 @@ if (!app.requestSingleInstanceLock()) {
     if (config.get().remote.enabled) void remote.apply(config.get().remote)
     updates.start()
     log('info', `BHCF Presenter ${app.getVersion()} started (Electron ${process.versions.electron})`)
+    logGraphicsStatus()
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) open()

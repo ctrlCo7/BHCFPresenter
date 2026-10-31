@@ -79,7 +79,9 @@ export function handleMediaProtocol(getMediaDir: () => string | null, getLibrary
 
     const contentType = mediaTypeFor(fileName)?.mimeType ?? 'application/octet-stream'
     // CORS lets the renderer draw video frames to a canvas (poster thumbnails) without tainting it.
-    const baseHeaders = { 'Content-Type': contentType, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*' }
+    const baseHeaders: Record<string, string> = { 'Content-Type': contentType, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*' }
+    // SVG is a document format: never let one run scripts or fetch anything, even if opened directly.
+    if (contentType === 'image/svg+xml') baseHeaders['Content-Security-Policy'] = "default-src 'none'; img-src data:; style-src 'unsafe-inline'"
     const rangeHeader = request.headers.get('range')
 
     if (rangeHeader) {

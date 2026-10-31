@@ -144,6 +144,19 @@ function TextSection({ el }: { el: Extract<SlideElement, { type: 'text' }> }): R
       <Row label="Auto-fit">
         <Toggle checked={el.autoFit} label="Shrink text to fit box" onChange={(autoFit) => editElements('Auto-fit', (x) => x.type === 'text' && (x.autoFit = autoFit))} />
       </Row>
+      <Row label="Overflow">
+        <Toggle
+          checked={!!el.overflow}
+          label="Show text outside the box"
+          onChange={(overflow) =>
+            editElements('Text overflow', (x) => {
+              if (x.type !== 'text') return
+              if (overflow) x.overflow = true
+              else delete x.overflow
+            })
+          }
+        />
+      </Row>
       <ApplyStyleButtons />
       <div className="muted inspector-tip">Tokens: {'{clock}'} shows the time, {'{timer:Name}'} shows a timer.</div>
     </Section>

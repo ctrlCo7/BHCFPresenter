@@ -30,6 +30,7 @@ The npm scripts launch Electron through `scripts/electron-vite.mjs`, which clear
 - **Toolbar:** the icon bar under the menus holds Search, Song, Theme, the Show / Edit / Live modes, Bible, Media, Overlays, Timers, Outputs, Dark/Light and Settings.
 - **Dark mode:** the moon/sun button in the toolbar (Ctrl+Shift+D), or Settings → Appearance (Light, Dark or match Windows).
 - **Outputs:** press **F** (or click **Outputs** in the toolbar) to open the outputs. Settings → Outputs assigns each output to a screen. With one screen, choose "Window" to see the output in a window.
+- **If the app closes or freezes when the outputs open:** turn on **Settings → Outputs → Safe graphics** (hardware acceleration off; the app restarts). After a graphics crash the app offers this by itself. Crashes are written to the log (Settings → Maintenance → Open log folder): send that file when reporting a problem.
 - **Stage display:** set an output to "Stage display" and configure it in Settings → Stage Display.
 - **Timers:** the screen button shows a timer full screen. It replaces the slide, and the next slide, media or logo replaces it, so they never overlap. The palette button (or double-clicking the timer) opens its design in the slide editor: fonts, colours, position, extra text and a background.
 - **Auto-advance and loops:** the loop button on a presentation (or the slide editor's *Presentation playback*) moves slides on by themselves every few seconds and can start again after the last slide, for pre-service announcements. A slide can set its own time or wait for Next. A bar under the Program monitor counts down and can pause it.
@@ -38,8 +39,10 @@ The npm scripts launch Electron through `scripts/electron-vite.mjs`, which clear
 
 ## Songs, backgrounds and Bibles
 
+- **Import PowerPoint** (File → Import PowerPoint…, or drag a .pptx onto the app): each slide comes in with its text boxes, shapes, pictures, background and speaker notes, ready to change in the slide editor. Old .ppt files are converted by PowerPoint when it is installed. Fonts that are not on the computer are replaced; animations, videos and charts are left out. The slide pictures are in Media › PowerPoint Pictures.
 - **Import songs** (Library → Import Songs…): select several files at once. Plain text (.txt), ChordPro (.cho, .chordpro, .crd), OpenLyrics (.xml, from OpenLP and others) and PowerPoint (.pptx, the slide text; repeated slides become the chorus). They go into Library › Songs.
 - **New song** (Library → ♪ or Ctrl+Shift+L): paste the whole song. Headings (`Verse 1`, `V1`, `(Chorus)`, `Chorus x2`, `Repeat Chorus`…), chord lines and CCLI/copyright lines are handled automatically, and the slides update as you paste or edit. Lines per slide defaults to **Auto**.
+- **Online backgrounds** (Templates → Online): search free worship videos on Pexels or Pixabay and add them with one click (downloaded in HD into the backgrounds folder's Online subfolder and Media › P&W Backgrounds). Each site needs a free API key, entered once per computer; it stays on that computer.
 - **Background videos:**
   1. Import videos in the **Media** tab, or create free loops with **Templates** (Ctrl+T).
   2. Hover a video and click **Background**: it loops behind everything.

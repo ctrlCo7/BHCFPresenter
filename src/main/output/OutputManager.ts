@@ -84,6 +84,16 @@ export class OutputManager {
 
   /** Opens, closes or moves windows so reality matches config + active flag. */
   reconcile(): void {
+    try {
+      this.reconcileNow()
+    } catch (err) {
+      // Never let a failed output take the app down; the operator window keeps working.
+      log('error', 'Could not open or move outputs:', err)
+    }
+    this.broadcastStatus()
+  }
+
+  private reconcileNow(): void {
     const configs = this.config.get().outputs
     const used = new Set<number>()
     for (const [id, o] of [...this.open]) {
@@ -103,7 +113,6 @@ export class OutputManager {
       if (targetId !== null) used.add(targetId)
       this.openWindow(cfg, target)
     }
-    this.broadcastStatus()
   }
 
   private resolveDisplay(cfg: OutputConfig, used: Set<number>): Display | null {
@@ -124,11 +133,18 @@ export class OutputManager {
     const bounds = display
       ? display.bounds
       : { x: primary.x + Math.round(primary.width * 0.55), y: primary.y + 60, width: 800, height: 450 }
+    const displays = screen.getAllDisplays()
+    log(
+      'info',
+      `Opening output "${cfg.name}" on ${display ? `${display.label || 'display'} ${display.bounds.width}×${display.bounds.height} @${display.scaleFactor}x` : 'a window'} (${displays.length} screen${displays.length === 1 ? '' : 's'}: ${displays.map((d) => `${d.bounds.width}×${d.bounds.height}@${d.scaleFactor}x`).join(', ')})`
+    )
     const win = new BrowserWindow({
       ...bounds,
       show: false,
       frame: !fullscreen,
-      fullscreen,
+      // Created at the projector's size and made fullscreen once shown: creating it fullscreen
+      // on a second screen (often with a different scale) is less reliable on Windows.
+      fullscreen: false,
       autoHideMenuBar: true,
       skipTaskbar: fullscreen,
       backgroundColor: '#000000',
@@ -146,10 +162,20 @@ export class OutputManager {
     win.setMenu(null)
     if (!fullscreen) win.setAspectRatio(16 / 9)
     win.once('ready-to-show', () => {
-      // Never steal focus from the operator window.
-      win.showInactive()
-      if (fullscreen) win.setFullScreen(true)
+      if (win.isDestroyed()) return
+      try {
+        // Never steal focus from the operator window.
+        win.showInactive()
+        if (display) {
+          win.setBounds(display.bounds)
+          win.setFullScreen(true)
+        }
+      } catch (err) {
+        log('error', `Output "${cfg.name}" could not go fullscreen:`, err)
+      }
     })
+    win.on('unresponsive', () => log('warn', `Output "${cfg.name}" is not responding`))
+    win.on('responsive', () => log('info', `Output "${cfg.name}" is responding again`))
     win.on('closed', () => {
       const o = this.open.get(cfg.id)
       if (o?.win === win) this.open.delete(cfg.id)

@@ -171,3 +171,88 @@ button.tpl-card:disabled {
   color: #fff;
   font-weight: 600;
 }
+
+/* Templates › Online */
+.online-search {
+  display: flex;
+  flex: 1;
+  max-width: 420px;
+  align-items: center;
+  gap: 6px;
+}
+.online-search .input {
+  flex: 1;
+}
+.online-ideas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.online-ideas .chip {
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--bg-1);
+  color: var(--text-2);
+  font-size: 12px;
+  cursor: pointer;
+}
+.online-ideas .chip:hover,
+.online-ideas .chip.active {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+.online-thumb {
+  object-fit: cover;
+}
+.online-length {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.online-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+.online-credit {
+  margin-top: 12px;
+  text-align: center;
+}
+.online-key {
+  display: flex;
+  gap: 14px;
+  max-width: 640px;
+  margin: 24px auto;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--bg-2);
+}
+.online-key > svg {
+  flex: none;
+  color: var(--accent);
+}
+.online-key-body {
+  flex: 1;
+  min-width: 0;
+}
+.online-key-body ol {
+  margin: 8px 0 12px;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+.online-key-row {
+  display: flex;
+  gap: 8px;
+}
+.online-key-row .input {
+  flex: 1;
+}

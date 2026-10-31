@@ -430,12 +430,27 @@ export function pwBackgroundsPlaylist(p: Project, profile: Profile = activeProfi
   return p.mediaPlaylists[pl.id] as MediaPlaylist
 }
 
-/** Media that only shows when its playlist is opened: the items of the profile's P&W Backgrounds playlist. */
+export const SLIDE_PICTURES_PLAYLIST_NAME = 'PowerPoint Pictures'
+
+/** The profile's "PowerPoint Pictures" playlist: pictures and shapes from imported decks (created when missing). */
+export function slidePicturesPlaylist(p: Project, profile: Profile = activeProfile(p)): MediaPlaylist {
+  const found = profile.mediaPlaylistOrder.map((id) => p.mediaPlaylists[id]).find((pl) => pl?.role === 'slide-pictures')
+  if (found) return found
+  const pl: MediaPlaylist = { ...createMediaPlaylist(SLIDE_PICTURES_PLAYLIST_NAME, 'image'), role: 'slide-pictures' }
+  p.mediaPlaylists[pl.id] = pl
+  profile.mediaPlaylistOrder.push(pl.id)
+  return p.mediaPlaylists[pl.id] as MediaPlaylist
+}
+
+/**
+ * Media that only shows when its playlist is opened: the items of the profile's P&W Backgrounds
+ * and PowerPoint Pictures playlists.
+ */
 export function hiddenFromAllMedia(p: Project, profile: Profile = activeProfile(p)): Set<Id> {
   const hidden = new Set<Id>()
   for (const id of profile.mediaPlaylistOrder) {
     const pl = p.mediaPlaylists[id]
-    if (pl?.role === 'pw-backgrounds') for (const m of pl.mediaIds) hidden.add(m)
+    if (pl?.role) for (const m of pl.mediaIds) hidden.add(m)
   }
   return hidden
 }

@@ -98,7 +98,7 @@ function TextView({ el }: { el: TextElement }): ReactElement {
   const text = tokens ? resolveTokens(el.text, timers, now) : el.text
   const fontSize = fittedFontSize(tokens ? { ...el, text } : el)
   return (
-    <div className="sr-text" style={{ padding: el.padding, backgroundColor: el.fill ?? undefined, justifyContent: VERTICAL_JUSTIFY[el.style.verticalAlign] }}>
+    <div className={`sr-text${el.overflow ? ' overflow' : ''}`} style={{ padding: el.padding, backgroundColor: el.fill ?? undefined, justifyContent: VERTICAL_JUSTIFY[el.style.verticalAlign] }}>
       <div className="sr-text-inner" style={{ ...textCss(el.style, fontSize), textShadow: textShadowCss(el.shadow) }}>
         {text}
       </div>

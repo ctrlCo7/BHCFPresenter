@@ -14,6 +14,7 @@ import { BackgroundEditor, TransitionEditor } from '../editor/BackgroundEditor'
 import { FontPicker } from '../../components/ui/FontPicker'
 import { cleanupUnusedMedia } from '../media/mediaActions'
 import { exportActivePresentation, importPresentationFile } from '../presentation/transferActions'
+import { GraphicsSection } from './GraphicsSection'
 import { UpdatesTab } from './UpdatesTab'
 import './settings.css'
 
@@ -119,6 +120,7 @@ function OutputsTab(): ReactElement {
           <Plus size={14} /> Add output
         </button>
       )}
+      <GraphicsSection />
     </>
   )
 }

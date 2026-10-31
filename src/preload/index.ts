@@ -29,7 +29,10 @@ const api: BhcfApi = {
     log: (level, message) => ipcRenderer.send(IPC.appLog, level, String(message).slice(0, 8000)),
     openLogs: () => call(IPC.appOpenLogs),
     getTheme: () => call(IPC.appGetTheme),
-    setTheme: (theme) => call(IPC.appSetTheme, theme)
+    setTheme: (theme) => call(IPC.appSetTheme, theme),
+    graphics: () => call(IPC.appGraphicsInfo),
+    setSafeGraphics: (safeMode, restart) => call(IPC.appSetSafeGraphics, safeMode, restart),
+    dismissSafeGraphics: () => call(IPC.appDismissSafeGraphics)
   },
   project: {
     recent: () => call(IPC.projectRecent),
@@ -47,7 +50,8 @@ const api: BhcfApi = {
   },
   presentation: {
     export: (presentation, media) => call(IPC.presentationExport, presentation, media),
-    import: () => call(IPC.presentationImport)
+    import: () => call(IPC.presentationImport),
+    importPowerPoint: (paths) => call(IPC.presentationImportPowerPoint, paths)
   },
   media: {
     import: (paths) => call(IPC.mediaImport, paths),
@@ -94,6 +98,14 @@ const api: BhcfApi = {
     download: () => call(IPC.updatesDownload),
     onStatus: (handler) => on(IPC.updatesStatus, handler),
     releaseNotes: (since) => call(IPC.updatesReleaseNotes, since)
+  },
+  online: {
+    keys: () => call(IPC.onlineKeys),
+    setKey: (provider, key) => call(IPC.onlineSetKey, provider, key),
+    search: (provider, query, page) => call(IPC.onlineSearch, provider, query, page),
+    download: (resultId) => call(IPC.onlineDownload, resultId),
+    onProgress: (handler) => on(IPC.onlineProgress, handler),
+    openPage: (provider, resultId) => call(IPC.onlineOpenPage, provider, resultId)
   },
   songs: {
     importFiles: () => call(IPC.songsImport)

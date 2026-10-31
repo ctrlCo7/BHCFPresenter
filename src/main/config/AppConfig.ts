@@ -15,6 +15,8 @@ export interface AppConfigData {
   theme: ThemePreference
   /** Folder of background videos/images shown in Templates → My Backgrounds; null = Documents\\Backgrounds */
   backgroundsDir: string | null
+  /** Free API keys for online backgrounds (Pexels, Pixabay); kept on this computer only */
+  onlineKeys: { pexels: string; pixabay: string }
 }
 
 const MAX_RECENT = 12
@@ -31,7 +33,8 @@ function defaults(): AppConfigData {
     outputs: defaultOutputs(),
     remote: { enabled: false, port: 5719, pin: randomPin() },
     theme: 'system',
-    backgroundsDir: null
+    backgroundsDir: null,
+    onlineKeys: { pexels: '', pixabay: '' }
   }
 }
 
@@ -93,7 +96,11 @@ export class AppConfig {
         outputs: raw.outputs ? sanitizeOutputs(raw.outputs) : d.outputs,
         remote: sanitizeRemote(raw.remote, d.remote),
         theme: raw.theme === 'light' || raw.theme === 'dark' || raw.theme === 'system' ? raw.theme : d.theme,
-        backgroundsDir: typeof raw.backgroundsDir === 'string' && raw.backgroundsDir ? raw.backgroundsDir : null
+        backgroundsDir: typeof raw.backgroundsDir === 'string' && raw.backgroundsDir ? raw.backgroundsDir : null,
+        onlineKeys: {
+          pexels: typeof raw.onlineKeys?.pexels === 'string' ? raw.onlineKeys.pexels.slice(0, 200) : '',
+          pixabay: typeof raw.onlineKeys?.pixabay === 'string' ? raw.onlineKeys.pixabay.slice(0, 200) : ''
+        }
       }
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'ENOENT') console.warn('[config] unreadable, using defaults:', err)

@@ -7,6 +7,7 @@ import { EditWorkspace } from '../features/editor/EditWorkspace'
 import { LiveWorkspace } from '../features/live/LiveWorkspace'
 import { ensureVideoThumbnails, importMedia } from '../features/media/mediaActions'
 import { organizePwBackgrounds } from '../features/media/pwBackgrounds'
+import { importPowerPoint } from '../features/presentation/transferActions'
 import { StatusBar } from '../features/shell/StatusBar'
 import { TitleBar } from '../features/shell/TitleBar'
 import { Toolbar } from '../features/shell/Toolbar'
@@ -17,6 +18,7 @@ import { Workspace } from '../features/shell/Workspace'
 import { live } from '../live/liveStore'
 import { startLivePublisher } from '../live/livePublisher'
 import { startRemoteBridge } from '../live/remoteBridge'
+import { askSafeGraphicsAfterCrash } from '../features/settings/GraphicsSection'
 import { showWhatsNew, startUpdateListener } from '../services/updates'
 import { startAutosave } from '../services/autosave'
 import { installShortcutDispatcher, runCommand } from '../services/commands'
@@ -52,7 +54,9 @@ export function App(): ReactElement {
     void loadTheme()
     void openLastProject().finally(() => {
       setBooted(true)
-      void showWhatsNew().catch(() => undefined)
+      void askSafeGraphicsAfterCrash()
+        .catch(() => undefined)
+        .finally(() => void showWhatsNew().catch(() => undefined))
     })
     const onError = (e: ErrorEvent): void => window.bhcf.app.log('error', `${e.message} @ ${e.filename}:${e.lineno}`)
     const onRejection = (e: PromiseRejectionEvent): void => window.bhcf.app.log('error', `Unhandled rejection: ${String(e.reason)}`)
@@ -63,7 +67,13 @@ export function App(): ReactElement {
     window.addEventListener('error', onError)
     window.addEventListener('unhandledrejection', onRejection)
     window.addEventListener('dragover', prevent)
-    window.addEventListener('drop', prevent)
+    // A PowerPoint dropped anywhere (outside other drop zones) is imported as a presentation.
+    const onDrop = (e: DragEvent): void => {
+      prevent(e)
+      const paths = [...(e.dataTransfer?.files ?? [])].map((f) => window.bhcf.media.pathForFile(f)).filter((p) => /\.pptx?$/i.test(p))
+      if (paths.length && useProjectStore.getState().project) void importPowerPoint(paths)
+    }
+    window.addEventListener('drop', onDrop)
     return () => {
       stopAutosave()
       stopLive()
@@ -73,7 +83,7 @@ export function App(): ReactElement {
       window.removeEventListener('error', onError)
       window.removeEventListener('unhandledrejection', onRejection)
       window.removeEventListener('dragover', prevent)
-      window.removeEventListener('drop', prevent)
+      window.removeEventListener('drop', onDrop)
     }
   }, [])
 

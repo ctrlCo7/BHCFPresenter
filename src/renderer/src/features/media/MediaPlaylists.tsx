@@ -3,7 +3,7 @@
  * Backgrounds, Videos, Audio and any the user adds).
  * Selecting one shows only its items in the grid; media dragged from the grid drops onto a row.
  */
-import { Film, Image as ImageIcon, LayoutGrid, Music, Pencil, Play, Plus, Sparkles, Trash2, Wallpaper } from 'lucide-react'
+import { Film, Image as ImageIcon, LayoutGrid, Music, Pencil, Play, Plus, Presentation, Sparkles, Trash2, Wallpaper } from 'lucide-react'
 import { useState, type ReactElement } from 'react'
 import { MEDIA_PLAYLIST_KINDS, mediaPlaylistAccepts, type Id, type MediaPlaylistKind, type Project } from '@shared/model/types'
 import { currentDrag, endDrag } from '../../services/dragState'
@@ -72,12 +72,12 @@ export function MediaPlaylists({ project }: { project: Project }): ReactElement 
       {activeProfile(project).mediaPlaylistOrder.map((id) => {
         const pl = project.mediaPlaylists[id]
         if (!pl) return null
-        const Icon = pl.role === 'pw-backgrounds' ? Sparkles : PLAYLIST_ICON[pl.kind]
+        const Icon = pl.role === 'pw-backgrounds' ? Sparkles : pl.role === 'slide-pictures' ? Presentation : PLAYLIST_ICON[pl.kind]
         return (
           <div
             key={id}
             className={`media-list-row${active === id ? ' selected' : ''}${dropId === id ? ' drop-inside' : ''}`}
-            title={pl.role === 'pw-backgrounds' ? 'Backgrounds from Templates (hidden from All Media)' : `${KIND_LABEL[pl.kind]} playlist`}
+            title={pl.role === 'pw-backgrounds' ? 'Backgrounds from Templates (hidden from All Media)' : pl.role === 'slide-pictures' ? 'Pictures from imported PowerPoint files (hidden from All Media)' : `${KIND_LABEL[pl.kind]} playlist`}
             onClick={() => ui.set({ mediaPlaylistId: id })}
             onContextMenu={(e) => onContext(e, id)}
             onDragOver={(e) => {

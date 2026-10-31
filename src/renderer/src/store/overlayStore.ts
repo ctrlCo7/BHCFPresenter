@@ -23,7 +23,10 @@ export interface ConfirmOptions {
   title: string
   message: ReactNode
   confirmLabel?: string
+  cancelLabel?: string
   danger?: boolean
+  /** Focus Cancel instead of the confirm button, so a stray Enter or Space does nothing drastic */
+  focusCancel?: boolean
 }
 
 export interface CustomDialogOptions<T> {

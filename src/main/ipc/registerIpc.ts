@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, shell, type IpcMainInvokeEvent } from 'electron'
-import { IPC, type AppInfo, type DisplayInfo, type IpcResult, type LibraryListing, type RecentProject, type RemoteSnapshot, type ThemePreference } from '../../shared/ipc'
+import { IPC, type AppInfo, type OnlineProvider, type DisplayInfo, type IpcResult, type LibraryListing, type RecentProject, type RemoteSnapshot, type ThemePreference } from '../../shared/ipc'
 import type { LiveState } from '../../shared/live'
 import { MEDIA_EXTENSIONS, mediaTypeFor, PW_BACKGROUNDS_DIR } from '../../shared/media'
 import type { MediaAsset, Presentation } from '../../shared/model/types'
@@ -11,6 +11,7 @@ import { builtInsNotIn, copyFolderIntoLibrary, copyIntoLibrary, folderAccessMess
 import { builtInBackgroundsDir } from '../media/mediaProtocol'
 import { deleteMediaFiles, importMediaFiles, listMediaFiles, moveToBackgroundsFolder, saveThumbnail } from '../media/MediaImporter'
 import type { OutputManager } from '../output/OutputManager'
+import { importPowerPointFiles } from '../project/PowerPointImport'
 import { exportPresentation, importPresentation } from '../project/PresentationTransfer'
 import { PROJECT_FILE, type ProjectStore } from '../project/ProjectStore'
 import type { RemoteServer } from '../remote/RemoteServer'
@@ -18,6 +19,8 @@ import { AppError, exists, sanitizeFileName } from '../util/fsx'
 import { SONG_FILE_EXTENSIONS } from '../../shared/songImport'
 import { readSongFiles } from '../songs/songFiles'
 import type { UpdateService } from '../updates/UpdateService'
+import { downloadOnline, KEY_PAGES, pageOf, searchOnline } from '../media/OnlineBackgrounds'
+import { dismissSafeModeQuestion, graphicsInfo, setSafeMode } from '../util/graphics'
 import { log, logsDir } from '../util/log'
 import { isDev } from '../windows/mainWindow'
 
@@ -82,6 +85,9 @@ export function registerIpc({ store, config, outputs, bibles, remote, updates, g
 
   /* ------------------------------ App ------------------------------ */
 
+  h(IPC.appGraphicsInfo, () => graphicsInfo())
+  h(IPC.appSetSafeGraphics, (_e, safeMode: unknown, restart: unknown) => setSafeMode(safeMode === true, restart === true))
+  h(IPC.appDismissSafeGraphics, () => dismissSafeModeQuestion())
   h(IPC.appInfo, (): AppInfo => ({
     name: app.getName(),
     version: app.getVersion(),
@@ -194,6 +200,23 @@ export function registerIpc({ store, config, outputs, bibles, remote, updates, g
     })
     if (res.canceled || !res.filePaths[0]) return null
     return importPresentation(res.filePaths[0], p.media)
+  })
+
+  h(IPC.presentationImportPowerPoint, async (_e, paths?: unknown) => {
+    const p = store.requireOpen()
+    // Dropped files arrive as paths; otherwise ask.
+    const given = Array.isArray(paths) ? paths.filter((x): x is string => typeof x === 'string' && /\.pptx?$/i.test(x)) : []
+    if (given.length) return importPowerPointFiles(p.media, given.slice(0, 50))
+    const res = await openDialog({
+      title: 'Import PowerPoint',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        { name: 'PowerPoint (.pptx, .ppt)', extensions: ['pptx', 'ppt'] },
+        { name: 'All Files', extensions: ['*'] }
+      ]
+    })
+    if (res.canceled || res.filePaths.length === 0) return null
+    return importPowerPointFiles(p.media, res.filePaths.slice(0, 50))
   })
 
   /* ------------------------------ Media ------------------------------ */
@@ -343,6 +366,32 @@ export function registerIpc({ store, config, outputs, bibles, remote, updates, g
   h(IPC.updatesInstall, () => updates.update())
   h(IPC.updatesDownload, () => updates.openDownload())
   h(IPC.updatesReleaseNotes, (_e, since: unknown) => updates.releaseNotesSince(typeof since === 'string' && /^\d+\.\d+\.\d+/.test(since) ? since : null))
+
+  /* ------------------------- Online backgrounds ------------------------- */
+
+  const isProvider = (v: unknown): v is OnlineProvider => v === 'pexels' || v === 'pixabay'
+  const keyStatus = (): Record<OnlineProvider, boolean> => ({ pexels: !!config.get().onlineKeys.pexels, pixabay: !!config.get().onlineKeys.pixabay })
+  h(IPC.onlineKeys, () => keyStatus())
+  h(IPC.onlineSetKey, async (_e, provider: unknown, key: unknown) => {
+    if (!isProvider(provider)) throw new AppError('BAD_PROVIDER', 'Unknown provider.')
+    const clean = typeof key === 'string' ? key.trim().slice(0, 200) : ''
+    await config.update({ onlineKeys: { ...config.get().onlineKeys, [provider]: clean } })
+    return keyStatus()
+  })
+  h(IPC.onlineSearch, (_e, provider: unknown, query: unknown, page: unknown) => {
+    if (!isProvider(provider)) throw new AppError('BAD_PROVIDER', 'Unknown provider.')
+    const p = typeof page === 'number' && Number.isInteger(page) && page > 0 && page < 100 ? page : 1
+    return searchOnline(provider, config.get().onlineKeys[provider], typeof query === 'string' ? query : '', p)
+  })
+  h(IPC.onlineDownload, (event, resultId: unknown) =>
+    downloadOnline(libraryDir(), String(resultId), (percent) => {
+      if (!event.sender.isDestroyed()) event.sender.send(IPC.onlineProgress, { id: String(resultId), percent })
+    })
+  )
+  h(IPC.onlineOpenPage, async (_e, provider: unknown, resultId: unknown) => {
+    const url = typeof resultId === 'string' ? pageOf(resultId) : isProvider(provider) ? KEY_PAGES[provider] : null
+    if (url) await shell.openExternal(url)
+  })
 
   /* ------------------------------ Songs ------------------------------ */
 

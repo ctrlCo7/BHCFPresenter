@@ -5,12 +5,31 @@
  * plain Error with a user-presentable message, so renderers can use ordinary try/catch.
  */
 import type { BibleBook, BibleInfo, Verse } from './bible'
+import type { PptDeck } from './pptx'
 import type { SongFile } from './songImport'
 import type { ReleaseNote, UpdateStatus } from './updates'
 import type { LiveState, OutputConfig, OutputStatus } from './live'
 import type { MediaAsset, Presentation, Project } from './model/types'
 
 export type IpcResult<T> = { ok: true; value: T } | { ok: false; error: { message: string; code?: string } }
+
+/** A PowerPoint file read by the main process; its pictures are already in the project's media folder. */
+export interface PowerPointDeck {
+  name: string
+  deck: PptDeck
+  media: MediaAsset[]
+  /** Picture path in the .pptx → media id */
+  mediaFor: Record<string, string>
+}
+
+/** Safe graphics mode, and whether the graphics process has crashed (see main/util/graphics). */
+export interface GraphicsInfo {
+  safeMode: boolean
+  lastGpuCrash: string | null
+  /** A GPU crash happened that the operator has not answered yet */
+  askSafeMode: boolean
+  crashedThisSession: boolean
+}
 
 export interface AppInfo {
   name: string
@@ -133,6 +152,25 @@ export interface LibraryListing {
   builtIn: LibraryFile[]
 }
 
+/** Free online libraries of worship background videos. */
+export type OnlineProvider = 'pexels' | 'pixabay'
+
+/** A video found online (Templates › Online). */
+export interface OnlineBackground {
+  /** Pass to download(); only searched videos can be downloaded */
+  id: string
+  provider: OnlineProvider
+  title: string
+  author: string
+  /** The video's page on the provider's website (credit) */
+  pageUrl: string
+  durationSec: number | null
+  width: number | null
+  height: number | null
+  /** Preview picture as a data URI */
+  thumbnail: string | null
+}
+
 /** Where a Templates background lives: the backgrounds folder, or the ones that come with the app. */
 export type LibrarySource = 'folder' | 'builtin'
 
@@ -145,6 +183,9 @@ export interface LibraryAddResult {
 /** Channel names, kept in one place to avoid typos across processes. */
 export const IPC = {
   appInfo: 'app:info',
+  appGraphicsInfo: 'app:graphics-info',
+  appSetSafeGraphics: 'app:set-safe-graphics',
+  appDismissSafeGraphics: 'app:dismiss-safe-graphics',
   appFlushRequest: 'app:flush-request',
   appFlushDone: 'app:flush-done',
   appLog: 'app:log',
@@ -165,6 +206,7 @@ export const IPC = {
   projectRestoreBackup: 'project:restore-backup',
   presentationExport: 'presentation:export',
   presentationImport: 'presentation:import',
+  presentationImportPowerPoint: 'presentation:import-powerpoint',
   mediaImport: 'media:import',
   mediaSaveThumbnail: 'media:save-thumbnail',
   mediaMoveToBackgrounds: 'media:move-to-backgrounds',
@@ -174,6 +216,12 @@ export const IPC = {
   libraryImport: 'library:import',
   libraryAddFiles: 'library:add-files',
   libraryAddFolder: 'library:add-folder',
+  onlineKeys: 'online:keys',
+  onlineSetKey: 'online:set-key',
+  onlineSearch: 'online:search',
+  onlineDownload: 'online:download',
+  onlineProgress: 'online:progress',
+  onlineOpenPage: 'online:open-page',
   mediaListFiles: 'media:list-files',
   mediaDeleteFiles: 'media:delete-files',
   displaysList: 'displays:list',
@@ -221,6 +269,10 @@ export interface BhcfApi {
     getTheme(): Promise<ThemePreference>
     /** Saves the preference; the window's colours (and prefers-color-scheme) follow it. */
     setTheme(theme: ThemePreference): Promise<void>
+    graphics(): Promise<GraphicsInfo>
+    /** Safe graphics mode (hardware acceleration off); applies after a restart (`restart`: now). */
+    setSafeGraphics(safeMode: boolean, restart: boolean): Promise<void>
+    dismissSafeGraphics(): Promise<void>
   }
   project: {
     recent(): Promise<RecentProject[]>
@@ -244,6 +296,8 @@ export interface BhcfApi {
     export(presentation: Presentation, media: MediaAsset[]): Promise<string | null>
     /** Reads a .bhcfpres file, copying its media into the project. Null if cancelled. */
     import(): Promise<ImportedPresentation | null>
+    /** Asks for PowerPoint files (.pptx, or .ppt with PowerPoint installed) and reads them; null if cancelled. */
+    importPowerPoint(paths?: string[]): Promise<{ decks: PowerPointDeck[]; errors: string[] } | null>
   }
   media: {
     /** Copies files into the project. Shows a file dialog when `paths` is omitted. */
@@ -258,6 +312,18 @@ export interface BhcfApi {
     deleteFiles(names: string[]): Promise<{ deleted: number; freedBytes: number }>
   }
   /** The backgrounds folder on this computer (default: Documents\\Backgrounds). */
+  online: {
+    /** Which providers have a key saved (the keys themselves stay in the main process) */
+    keys(): Promise<Record<OnlineProvider, boolean>>
+    /** Saves (or with '' removes) a provider's API key */
+    setKey(provider: OnlineProvider, key: string): Promise<Record<OnlineProvider, boolean>>
+    search(provider: OnlineProvider, query: string, page: number): Promise<{ results: OnlineBackground[]; total: number }>
+    /** Downloads a search result into the backgrounds folder; resolves its name there ("Online/….mp4") */
+    download(resultId: string): Promise<string>
+    onProgress(handler: (p: { id: string; percent: number }) => void): Unsubscribe
+    /** Opens the API key sign-up page, or a found video's page (`resultId`) */
+    openPage(provider: OnlineProvider, resultId?: string): Promise<void>
+  }
   library: {
     list(): Promise<LibraryListing>
     /** Lets the user pick another folder; resolves the new listing, or null if cancelled. */

@@ -20,6 +20,7 @@ const MENUS: { label: string; items: MenuSpec[] }[] = [
       '-',
       'file.importMedia',
       'file.importPresentation',
+      'file.importPowerPoint',
       'library.importSongs',
       'file.exportPresentation',
       '-',

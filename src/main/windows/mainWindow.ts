@@ -2,6 +2,7 @@ import path from 'node:path'
 import { app, BrowserWindow, nativeTheme, screen, shell } from 'electron'
 import { IPC } from '../../shared/ipc'
 import type { AppConfig } from '../config/AppConfig'
+import { log } from '../util/log'
 
 export const isDev = !app.isPackaged
 const FLUSH_TIMEOUT_MS = 4000
@@ -122,8 +123,10 @@ export function createMainWindow(config: AppConfig): BrowserWindow {
     setTimeout(finish, FLUSH_TIMEOUT_MS)
   })
 
+  win.on('unresponsive', () => log('warn', 'Main window is not responding'))
+  win.on('responsive', () => log('info', 'Main window is responding again'))
   win.webContents.on('render-process-gone', (_e, details) => {
-    console.error('[main] renderer process gone:', details.reason)
+    // Logged by util/graphics.
     if (details.reason !== 'clean-exit' && !win.isDestroyed()) {
       // Reload; the project reopens from its last autosave.
       void loadRendererPage(win, 'index.html')

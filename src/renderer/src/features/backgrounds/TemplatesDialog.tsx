@@ -1,4 +1,4 @@
-import { Check, Clapperboard, Palette as PaletteIcon } from 'lucide-react'
+import { Check, Clapperboard, Globe, Palette as PaletteIcon } from 'lucide-react'
 import { createElement, useMemo, useState, type ReactElement } from 'react'
 import { createSlide } from '@shared/model/factory'
 import { applyThemeToElement, applyThemeToPresentation, LYRIC_THEMES, type LyricTheme } from '@shared/model/themes'
@@ -9,10 +9,11 @@ import { applyChange, useProjectStore } from '../../store/projectStore'
 import { useUiStore } from '../../store/uiStore'
 import { useElementWidth } from '../monitor/PreviewMonitor'
 import { FolderBackgroundsTab } from './FolderBackgroundsTab'
+import { OnlineBackgroundsTab } from './OnlineBackgroundsTab'
 import './templates.css'
 
 /** 'backgrounds' = the videos and images of the backgrounds folder (My Backgrounds). */
-export type TemplatesTab = 'backgrounds' | 'themes'
+export type TemplatesTab = 'backgrounds' | 'online' | 'themes'
 
 const SAMPLE_BG: Background = { type: 'gradient', gradient: { kind: 'linear', angle: 135, stops: [{ color: '#0f3d22', position: 0 }, { color: '#1e3a8a', position: 1 }] } }
 
@@ -83,11 +84,14 @@ function Templates({ initial }: { initial: TemplatesTab }): ReactElement {
         <button className={tab === 'backgrounds' ? 'active' : ''} onClick={() => setTab('backgrounds')}>
           <Clapperboard size={14} /> My Backgrounds
         </button>
+        <button className={tab === 'online' ? 'active' : ''} onClick={() => setTab('online')} title="Free worship backgrounds from Pexels and Pixabay">
+          <Globe size={14} /> Online
+        </button>
         <button className={tab === 'themes' ? 'active' : ''} onClick={() => setTab('themes')}>
           <PaletteIcon size={14} /> Lyric Themes
         </button>
       </div>
-      {tab === 'backgrounds' ? <FolderBackgroundsTab /> : <ThemesTab />}
+      {tab === 'backgrounds' ? <FolderBackgroundsTab /> : tab === 'online' ? <OnlineBackgroundsTab /> : <ThemesTab />}
     </div>
   )
 }

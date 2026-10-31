@@ -156,7 +156,8 @@ function normElement(v: unknown): SlideElement | null {
         style: normTextStyle(v.style),
         padding: Math.max(0, num(v.padding, 0)),
         fill: typeof v.fill === 'string' ? v.fill : null,
-        autoFit: bool(v.autoFit, true)
+        autoFit: bool(v.autoFit, true),
+        ...(v.overflow === true ? { overflow: true } : {})
       }
     case 'image':
       if (typeof v.mediaId !== 'string') return null
@@ -386,7 +387,7 @@ function normMediaPlaylist(id: Id, v: unknown, media: Record<Id, MediaAsset>): M
     kind,
     // Only existing media the playlist accepts, each once.
     mediaIds: [...new Set(ids.filter((m): m is string => typeof m === 'string' && mediaPlaylistAccepts(kind, media[m]?.kind)))],
-    ...(v.role === 'pw-backgrounds' ? { role: 'pw-backgrounds' as const } : {}),
+    ...(v.role === 'pw-backgrounds' || v.role === 'slide-pictures' ? { role: v.role } : {}),
     createdAt: str(v.createdAt, now),
     updatedAt: str(v.updatedAt, now)
   }

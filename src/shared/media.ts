@@ -12,6 +12,8 @@ export const MEDIA_TYPES: Readonly<Record<string, MediaTypeInfo>> = {
   png: { kind: 'image', mimeType: 'image/png' },
   gif: { kind: 'image', mimeType: 'image/gif' },
   webp: { kind: 'image', mimeType: 'image/webp' },
+  // Shown as pictures only (<img>), where SVG cannot run scripts or load anything.
+  svg: { kind: 'image', mimeType: 'image/svg+xml' },
   mp4: { kind: 'video', mimeType: 'video/mp4' },
   m4v: { kind: 'video', mimeType: 'video/mp4' },
   mov: { kind: 'video', mimeType: 'video/quicktime' },

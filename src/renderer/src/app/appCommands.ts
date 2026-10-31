@@ -23,7 +23,7 @@ import { toggleDarkMode } from '../services/theme'
 import { openSettings } from '../features/settings/SettingsDialog'
 import { importSongs, newSong } from '../features/songs/songActions'
 import { openTemplates } from '../features/backgrounds/TemplatesDialog'
-import { exportActivePresentation, importPresentationFile } from '../features/presentation/transferActions'
+import { exportActivePresentation, importPowerPoint, importPresentationFile } from '../features/presentation/transferActions'
 import { cleanupUnusedMedia } from '../features/media/mediaActions'
 import { clearAll, clearSlide, mediaStop, mediaToggle, nextSlide, prevSlide, toggleBlack, toggleLogo, toggleOutputs } from '../live/liveActions'
 import { live } from '../live/liveStore'
@@ -53,6 +53,7 @@ export function registerAppCommands(): void {
     { id: 'file.saveAs', label: 'Save As…', category: 'File', defaultKeys: ['Mod+Shift+S'], allowInInput: true, enabled: hasProject, run: saveProjectAs },
     { id: 'file.importMedia', label: 'Import Media…', category: 'File', defaultKeys: ['Mod+I'], enabled: hasProject, run: () => void importMedia() },
     { id: 'file.importPresentation', label: 'Import Presentation…', category: 'File', enabled: hasProject, run: importPresentationFile },
+    { id: 'file.importPowerPoint', label: 'Import PowerPoint…', category: 'File', enabled: hasProject, run: () => void importPowerPoint() },
     { id: 'file.exportPresentation', label: 'Export Presentation…', category: 'File', enabled: hasPresentation, run: exportActivePresentation },
     { id: 'file.cleanupMedia', label: 'Clean Up Unused Media…', category: 'File', enabled: hasProject, run: cleanupUnusedMedia },
     { id: 'file.settings', label: 'Settings…', category: 'File', defaultKeys: ['Mod+,'], allowInInput: true, run: () => openSettings() },

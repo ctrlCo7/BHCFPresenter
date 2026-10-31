@@ -61,7 +61,7 @@ export function LayersPanel({ slide }: { slide: Slide }): ReactElement {
           >
             <span className="layer-icon">{ICON[el.type]}</span>
             <span className="layer-name" style={{ opacity: el.hidden ? 0.5 : 1 }}>
-              {el.type === 'text' && el.text.trim() ? el.text.split('\n')[0] : el.name}
+              {el.type === 'text' && el.text.trim() ? el.text.split('\n').find((l) => l.trim()) : el.name}
             </span>
             <button
               className="icon-btn"

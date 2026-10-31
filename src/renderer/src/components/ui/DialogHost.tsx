@@ -114,14 +114,15 @@ function PromptDialog({ options, onClose }: { options: PromptOptions; onClose: (
 
 function ConfirmDialog({ options, onClose }: { options: ConfirmOptions; onClose: (v: boolean) => void }): ReactElement {
   const confirmRef = useRef<HTMLButtonElement>(null)
-  useEffect(() => confirmRef.current?.focus(), [])
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => (options.focusCancel ? cancelRef : confirmRef).current?.focus(), [options.focusCancel])
   return (
     <Modal title={options.title} width={420} onCancel={() => onClose(false)}>
       <div className="modal-body">
         <div className="modal-message">{options.message}</div>
         <div className="modal-footer">
-          <button className="btn" onClick={() => onClose(false)}>
-            Cancel
+          <button ref={cancelRef} className="btn" onClick={() => onClose(false)}>
+            {options.cancelLabel ?? 'Cancel'}
           </button>
           <button ref={confirmRef} className={`btn ${options.danger ? 'danger' : 'primary'}`} onClick={() => onClose(true)}>
             {options.confirmLabel ?? 'OK'}

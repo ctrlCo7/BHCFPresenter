@@ -101,6 +101,8 @@ export interface TextElement extends ElementBase {
   fill: string | null
   /** Shrink font to fit the frame when the text overflows */
   autoFit: boolean
+  /** Show text that does not fit outside the box instead of cutting it off (as PowerPoint does) */
+  overflow?: boolean
 }
 
 export interface ImageElement extends ElementBase {
@@ -277,7 +279,8 @@ export function mediaPlaylistAccepts(kind: MediaPlaylistKind, media: MediaKind |
 
 /** A named collection in the Media tab, in display order. */
 /** "pw-backgrounds": the playlist Templates backgrounds go into; its items are hidden from All Media. */
-export type MediaPlaylistRole = 'pw-backgrounds'
+/** Playlists whose items stay out of All Media: Templates backgrounds, pictures from PowerPoint decks */
+export type MediaPlaylistRole = 'pw-backgrounds' | 'slide-pictures'
 
 export interface MediaPlaylist {
   id: Id

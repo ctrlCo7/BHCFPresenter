@@ -37,6 +37,11 @@
   overflow: hidden;
 }
 
+/* Text that may run past its box, like PowerPoint (imported slides). */
+.sr-text.overflow {
+  overflow: visible;
+}
+
 .sr-text-inner {
   white-space: pre-wrap;
   overflow-wrap: break-word;
