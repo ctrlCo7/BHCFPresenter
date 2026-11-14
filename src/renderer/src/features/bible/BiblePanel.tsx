@@ -1,5 +1,5 @@
 import { BookOpen, ListPlus, Radio, Search, Upload } from 'lucide-react'
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { formatReference, parseReference, type BibleBook, type BibleInfo, type Verse } from '@shared/bible'
 import { matchingBook, scripturePresentation, type ParallelLayout } from '@shared/model/scripture'
 import type { Id, Presentation, Project } from '@shared/model/types'
@@ -42,6 +42,9 @@ export function BiblePanel(): ReactElement {
   const [reference, setReference] = useState('')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Verse[] | null>(null)
+  /** Verse to bring into view once its chapter is showing (after Go to, a search result or a new chapter). */
+  const [scrollTarget, setScrollTarget] = useState<{ book: number; chapter: number; verse: number } | null>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
   const [perSlide, setPerSlide] = useState('1')
   const [numbers, setNumbers] = useState(true)
 
@@ -96,6 +99,25 @@ export function BiblePanel(): ReactElement {
   }, [bible2, book2, chapter])
   const alt = useMemo(() => new Map(verses2.map((v) => [v.verse, v.text])), [verses2])
 
+  // Scroll the verse list once the wanted chapter has loaded (it loads asynchronously).
+  useLayoutEffect(() => {
+    if (!scrollTarget || results) return
+    const first = verses[0]
+    if (!first || first.book !== scrollTarget.book || first.chapter !== scrollTarget.chapter) return
+    setScrollTarget(null)
+    const body = bodyRef.current
+    if (!body) return
+    if (scrollTarget.verse <= 1) {
+      body.scrollTo({ top: 0 })
+      return
+    }
+    const el = body.querySelector<HTMLElement>(`[data-verse="${scrollTarget.verse}"]`)
+    if (!el) return
+    // A third of the way down, so the verses before it are still in sight.
+    const top = body.scrollTop + el.getBoundingClientRect().top - body.getBoundingClientRect().top - body.clientHeight / 3
+    body.scrollTo({ top: Math.max(0, top) })
+  }, [scrollTarget, verses, results])
+
   const bookInfo = books[book]
   // Verses some translations omit (empty text) are never put on slides.
   const chosen = useMemo(() => verses.filter((v) => selected.includes(v.verse) && v.text), [verses, selected])
@@ -109,6 +131,7 @@ export function BiblePanel(): ReactElement {
     setResults(null)
     setBook(ref.book)
     setChapter(ref.chapter)
+    setScrollTarget({ book: ref.book, chapter: ref.chapter, verse: ref.verseStart ?? 1 })
     if (ref.verseStart !== null) {
       const end = ref.verseEnd ?? ref.verseStart
       setSelected(Array.from({ length: end - ref.verseStart + 1 }, (_, i) => (ref.verseStart as number) + i))
@@ -241,16 +264,16 @@ export function BiblePanel(): ReactElement {
             }}
           />
         </div>
-        <Select value={String(book)} options={books.map((b) => ({ value: String(b.index), label: b.name }))} onChange={(v) => { setBook(Number(v)); setChapter(1); setSelected([]); setResults(null) }} width={150} />
+        <Select value={String(book)} options={books.map((b) => ({ value: String(b.index), label: b.name }))} onChange={(v) => { setBook(Number(v)); setChapter(1); setSelected([]); setResults(null); setScrollTarget({ book: Number(v), chapter: 1, verse: 1 }) }} width={150} />
         <Select
           value={String(chapter)}
           options={(bookInfo?.verseCounts ?? []).map((_, i) => ({ value: String(i + 1), label: `Chapter ${i + 1}` }))}
-          onChange={(v) => { setChapter(Number(v)); setSelected([]); setResults(null) }}
+          onChange={(v) => { setChapter(Number(v)); setSelected([]); setResults(null); setScrollTarget({ book, chapter: Number(v), verse: 1 }) }}
           width={120}
         />
       </div>
 
-      <div className="bible-body">
+      <div ref={bodyRef} className="bible-body">
         {results ? (
           <div className="bible-results">
             <div className="muted bible-results-head">
@@ -267,6 +290,7 @@ export function BiblePanel(): ReactElement {
                   setResults(null)
                   setBook(v.book)
                   setChapter(v.chapter)
+                  setScrollTarget({ book: v.book, chapter: v.chapter, verse: v.verse })
                   setSelected([v.verse])
                   setAnchor(v.verse)
                 }}
@@ -280,6 +304,7 @@ export function BiblePanel(): ReactElement {
             {verses.map((v) => (
               <div
                 key={v.verse}
+                data-verse={v.verse}
                 role="option"
                 aria-selected={selected.includes(v.verse)}
                 className={`verse${selected.includes(v.verse) ? ' selected' : ''}`}
